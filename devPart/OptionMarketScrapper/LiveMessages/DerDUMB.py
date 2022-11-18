@@ -1,9 +1,9 @@
 import pandas as pd
 
-from HestonModel.OptionMarketScrapper.AvailableRequests import get_instruments_by_currency_request
+from devPart.OptionMarketScrapper.AvailableRequests import get_instruments_by_currency_request
 from AvailableCurrencies import Currency
 from AvailableInstrumentType import InstrumentType
-from HestonModel.OptionMarketScrapper.Scrapper import send_request, URL_TO_SCRAP
+from devPart.OptionMarketScrapper.Scrapper import send_request, URL_TO_SCRAP
 
 import asyncio
 import json

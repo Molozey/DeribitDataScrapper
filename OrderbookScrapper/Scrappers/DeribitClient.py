@@ -1,6 +1,11 @@
 import time
-from MySQLDaemon import MySqlDaemon
-from AvailableCurrencies import Currency
+import warnings
+
+from docs.quant.OrderbookScrapper.DataBase.MySQLDaemon import MySqlDaemon
+from docs.quant.OrderbookScrapper.DataBase.HDF5Daemon import HDF5Daemon
+from docs.quant.OrderbookScrapper.Utils import MSG_LIST
+from docs.quant.OrderbookScrapper.Utils.AvailableCurrencies import Currency
+from docs.quant.OrderbookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
@@ -8,16 +13,16 @@ from threading import Thread
 from datetime import datetime
 import logging
 import json
-# TODO: make available to select TEST_NET inside Scrapper
-from HestonModel.OptionMarketScrapper.Scrapper import TEST_NET
-import MSG_LIST
+import yaml
+
+with open("../configuration.yaml", "r") as ymlfile:
+    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)["orderBookScrapper"]
 
 
-# TODO: Add here + index_future for time_maturity
 def scrap_available_instruments(currency: Currency):
-    from HestonModel.OptionMarketScrapper.AvailableRequests import get_instruments_by_currency_request
-    from AvailableInstrumentType import InstrumentType
-    from HestonModel.OptionMarketScrapper.Scrapper import send_request
+    from docs.quant.OrderbookScrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request
+    from docs.quant.OrderbookScrapper.Utils.AvailableInstrumentType import InstrumentType
+    from docs.quant.OrderbookScrapper.SyncLib.Scrapper import send_request
     import pandas as pd
     import numpy as np
 
@@ -25,7 +30,6 @@ def scrap_available_instruments(currency: Currency):
                                                                                kind=InstrumentType.OPTION,
                                                                                expired=False))
 
-    # answer_id = make_subscriptions_list['id']
     # Take only the result of answer. Now we have list of json contains information of option dotes.
     answer = make_subscriptions_list['result']
     available_maturities = pd.DataFrame(np.unique(list(map(lambda x: x["instrument_name"].split('-')[1], answer))))
@@ -35,23 +39,33 @@ def scrap_available_instruments(currency: Currency):
     print("Available maturities: \n", available_maturities)
 
     # TODO: uncomment
-    # selected_maturity = int(input("Select number of interested maturity "))
-    selected_maturity = 2
+    selected_maturity = int(input("Select number of interested maturity "))
+    # selected_maturity = 3
     selected_maturity = available_maturities.iloc[selected_maturity]['DeribitNaming']
     print('\nYou select:', selected_maturity)
 
     selected = list(map(lambda x: x["instrument_name"],
                         list(filter(lambda x: (selected_maturity in x["instrument_name"]) and (
-                                x["option_type"] == "call"), answer))))
+                                x["option_type"] == "call" or "put"), answer))))
 
+    get_underlying = send_request(get_ticker_by_instrument_request(selected[0]),
+                                  show_answer=False)['result']['underlying_index']
+    if 'SYN' not in get_underlying:
+        selected.append(get_underlying)
+    else:
+        if cfg["raise_error_at_synthetic"]:
+            raise ValueError("Cannot subscribe to order book for synthetic underlying")
+        else:
+            warnings.warn("Underlying is synthetic: {}".format(get_underlying))
     print("Selected Instruments")
     print(selected)
+
     return selected
 
 
 class DeribitClient(Thread, WebSocketApp):
     websocket: WebSocketApp | None
-    database: MySqlDaemon | None
+    database: MySqlDaemon | HDF5Daemon | None
 
     def __init__(self, test_mode: bool = False, enable_traceback: bool = True, enable_database_record: bool = True,
                  clean_database=False, constant_depth_order_book: bool | int = False):
@@ -64,20 +78,34 @@ class DeribitClient(Thread, WebSocketApp):
         self.enable_traceback = enable_traceback
         # Set logger settings
         logging.basicConfig(
-            level='INFO',
+            level=cfg["logger_level"],
             format='%(asctime)s | %(levelname)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         # Set storages for requested data
         self.instrument_requested = set()
         if enable_database_record:
-            if type(constant_depth_order_book) == int:
-                self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book, clean_tables=clean_database)
-            elif constant_depth_order_book is False:
-                self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book, clean_tables=clean_database)
-            else:
-                raise ValueError('Unavailable value of depth order book mode')
-            time.sleep(1)
+            if cfg["database_daemon"] == 'mysql':
+                if type(constant_depth_order_book) == int:
+                    self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
+                                                clean_tables=clean_database)
+                elif constant_depth_order_book is False:
+                    self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
+                                                clean_tables=clean_database)
+                else:
+                    raise ValueError('Unavailable value of depth order book mode')
+                time.sleep(1)
+
+            if cfg["database_daemon"] == "hdf5":
+                if type(constant_depth_order_book) == int:
+                    self.database = HDF5Daemon(constant_depth_mode=constant_depth_order_book,
+                                               clean_tables=clean_database)
+                elif constant_depth_order_book is False:
+                    self.database = HDF5Daemon(constant_depth_mode=constant_depth_order_book,
+                                               clean_tables=clean_database)
+                else:
+                    raise ValueError('Unavailable value of depth order book mode')
+                time.sleep(1)
         else:
             self.database = None
 
@@ -181,7 +209,7 @@ class DeribitClient(Thread, WebSocketApp):
     def make_new_subscribe_all_book(self, instrument_name: str, type_of_data="book", interval="100ms"):
         if instrument_name not in self.instrument_requested:
             subscription_message = MSG_LIST.make_subscription_all_book(instrument_name, type_of_data=type_of_data,
-                                                                       interval=interval,)
+                                                                       interval=interval, )
 
             self.send_new_request(request=subscription_message)
             self.instrument_requested.add(instrument_name)
@@ -207,15 +235,20 @@ class DeribitClient(Thread, WebSocketApp):
 
 
 if __name__ == '__main__':
-    DEPTH = 10
-    instruments_list = scrap_available_instruments(currency=Currency.BITCOIN)[10:11]
-    print(instruments_list)
+    if cfg["currency"] == "BTC":
+        _currency = Currency.BITCOIN
+    elif cfg["currency"] == "ETH":
+        _currency = Currency.ETHER
+    else:
+        raise ValueError("Unknown currency")
 
-    deribitWorker = DeribitClient(test_mode=TEST_NET,
-                                  enable_traceback=False,
-                                  enable_database_record=True,
-                                  clean_database=True,
-                                  constant_depth_order_book=DEPTH)
+    instruments_list = scrap_available_instruments(currency=_currency)
+
+    deribitWorker = DeribitClient(test_mode=cfg["test_net"],
+                                  enable_traceback=cfg["enable_traceback"],
+                                  enable_database_record=cfg["enable_database_record"],
+                                  clean_database=cfg["clean_database"],
+                                  constant_depth_order_book=cfg["depth"])
     deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(
@@ -223,16 +256,22 @@ if __name__ == '__main__':
     # Send Hello Message
     deribitWorker.send_new_request(MSG_LIST.hello_message())
     # Set heartbeat
-    deribitWorker.send_new_request(MSG_LIST.set_heartbeat(10))
-    # Send one subscription
-    # deribitWorker.make_new_subscribe_all_book("ETH-PERPETUAL")
+    deribitWorker.send_new_request(MSG_LIST.set_heartbeat(cfg["hearth_beat_time"]))
     # Send all subscriptions
+
     for _instrument_name in instruments_list:
-        # deribitWorker.make_new_subscribe_all_book(instrument_name=_instrument_name)
-        deribitWorker.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-                                                             depth=DEPTH, group=None)
-        # deribitWorker.database.add_order_book_content_limited_depth(bids=[[0.11, 0.1], [0.22, 0.2]],
-        #                                                             asks=[[0.33, 0.3], [0.44, 0.4]],
-        #                                                             change_id=1234,
-        #                                                             timestamp=100,
-        #                                                             instrument_name="TestInstrument")
+        if cfg["depth"] is False:
+            deribitWorker.make_new_subscribe_all_book(instrument_name=_instrument_name)
+        else:
+            deribitWorker.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
+                                                                 depth=cfg["depth"],
+                                                                 group=cfg["group_in_limited_order_book"])
+
+    # Extra like BTC-PERPETUAL
+    for _instrument_name in cfg["add_extra_instruments"]:
+        if cfg["depth"] is False:
+            deribitWorker.make_new_subscribe_all_book(instrument_name=_instrument_name)
+        else:
+            deribitWorker.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
+                                                                 depth=cfg["depth"],
+                                                                 group=cfg["group_in_limited_order_book"])
