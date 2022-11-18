@@ -1,11 +1,11 @@
 import time
 import warnings
 
-from docs.quant.OrderbookScrapper.DataBase.MySQLDaemon import MySqlDaemon
-from docs.quant.OrderbookScrapper.DataBase.HDF5Daemon import HDF5Daemon
-from docs.quant.OrderbookScrapper.Utils import MSG_LIST
-from docs.quant.OrderbookScrapper.Utils.AvailableCurrencies import Currency
-from docs.quant.OrderbookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
+from OrderBookScrapper.DataBase.MySQLDaemon import MySqlDaemon
+from OrderBookScrapper.DataBase.HDF5Daemon import HDF5Daemon
+from OrderBookScrapper.Utils import MSG_LIST
+from OrderBookScrapper.Utils.AvailableCurrencies import Currency
+from OrderBookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
@@ -20,9 +20,9 @@ with open("../configuration.yaml", "r") as ymlfile:
 
 
 def scrap_available_instruments(currency: Currency):
-    from docs.quant.OrderbookScrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request
-    from docs.quant.OrderbookScrapper.Utils.AvailableInstrumentType import InstrumentType
-    from docs.quant.OrderbookScrapper.SyncLib.Scrapper import send_request
+    from OrderBookScrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request
+    from OrderBookScrapper.Utils.AvailableInstrumentType import InstrumentType
+    from OrderBookScrapper.SyncLib.Scrapper import send_request
     import pandas as pd
     import numpy as np
 
