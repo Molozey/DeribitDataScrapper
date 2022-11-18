@@ -39,8 +39,8 @@ def scrap_available_instruments(currency: Currency):
     print("Available maturities: \n", available_maturities)
 
     # TODO: uncomment
-    selected_maturity = int(input("Select number of interested maturity "))
-    # selected_maturity = 3
+    # selected_maturity = int(input("Select number of interested maturity "))
+    selected_maturity = 3
     selected_maturity = available_maturities.iloc[selected_maturity]['DeribitNaming']
     print('\nYou select:', selected_maturity)
 
@@ -135,6 +135,7 @@ class DeribitClient(Thread, WebSocketApp):
         # TODO: send Telegram notification
         logging.error(error)
         print(error)
+        self._restart_all()
         pass
 
     def _on_message(self, websocket, message):
@@ -162,6 +163,7 @@ class DeribitClient(Thread, WebSocketApp):
                 if 'change' and 'type' not in response['params']['data']:
 
                     if self.database:
+
                         self.database.add_order_book_content_limited_depth(
                             change_id=response['params']['data']['change_id'],
                             timestamp=response['params']['data']['timestamp'],
@@ -232,6 +234,33 @@ class DeribitClient(Thread, WebSocketApp):
             self.instrument_requested.add(instrument_name)
         else:
             logging.warning(f"Instrument {instrument_name} already subscribed")
+
+    def _restart_all(self):
+        logging.warning("Error at webApp leads to restarting")
+        self.instrument_requested.clear()
+        time.sleep(2)
+        logging.warning("Subscriptions has been cleared")
+        self.send_new_request(request=MSG_LIST.unsubscribe_all())
+        time.sleep(10)
+        logging.warning("Restart - reset hearth beat time")
+        self.send_new_request(MSG_LIST.set_heartbeat(cfg["hearth_beat_time"]))
+        logging.warning("Restart - subscribe to all instruments")
+        for _instrument_name in instruments_list:
+            if cfg["depth"] is False:
+                self.make_new_subscribe_all_book(instrument_name=_instrument_name)
+            else:
+                self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
+                                                                     depth=cfg["depth"],
+                                                                     group=cfg["group_in_limited_order_book"])
+
+        # Extra like BTC-PERPETUAL
+        for _instrument_name in cfg["add_extra_instruments"]:
+            if cfg["depth"] is False:
+                self.make_new_subscribe_all_book(instrument_name=_instrument_name)
+            else:
+                self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
+                                                                     depth=cfg["depth"],
+                                                                     group=cfg["group_in_limited_order_book"])
 
 
 if __name__ == '__main__':
