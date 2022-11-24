@@ -2,9 +2,12 @@ mysql:
     host: localhost
     user: root
     database: DeribitOrderBook
+    use_bathes_to_record: False
 
 hdf5:
     hdf5_database_file: "HDF_storage.hdf5"
+    use_bathes_to_record: True
+    batch_size: 2
 
 orderBookScrapper:
     depth: 10

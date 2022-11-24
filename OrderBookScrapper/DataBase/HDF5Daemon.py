@@ -1,4 +1,7 @@
 import time
+from typing import Union, Optional
+
+import numpy as np
 
 from OrderBookScrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
 import logging
@@ -7,24 +10,36 @@ import os
 import pandas as pd
 
 
+def flatten(list_of_lists):
+    if len(list_of_lists) == 0:
+        return list_of_lists
+    if isinstance(list_of_lists[0], list):
+        return flatten(list_of_lists[0]) + flatten(list_of_lists[1:])
+    return list_of_lists[:1] + flatten(list_of_lists[1:])
+
+
 class HDF5Daemon(AbstractDataManager):
     TEMPLATE_FOR_LIMIT_DEPTH_TABLES_NAME = "TABLE_DEPTH_{}"
 
     LIMITS_OF_COLUMNS = {
         "CHANGE_ID": 15,
-        "NAME_INSTRUMENT": 18,
+        "NAME_INSTRUMENT": 20,
         "TIMESTAMP_VALUE": 16,
-        "BID_PRICE": 30,
-        "BID_AMOUNT": 30,
-        "ASK_PRICE": 30,
-        "ASK_AMOUNT": 30,
+        "BID_PRICE": 10,
+        "BID_AMOUNT": 10,
+        "ASK_PRICE": 10,
+        "ASK_AMOUNT": 10,
 
     }
 
-    def __init__(self, constant_depth_mode: bool | int, clean_tables: bool = False):
+    batch_mode_table_1: Optional[pd.DataFrame] = None
+    batch_mode_table_2: Optional[pd.DataFrame] = None
+    batch_mutable_pointer: Optional[int] = None
+
+    def __init__(self, constant_depth_mode: Union[bool, int], clean_tables: bool = False):
         # Config file
         with open("../configuration.yaml", "r") as ymlfile:
-            cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)['hdf5']
+            self.cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)['hdf5']
 
         super().__init__()
         logging.basicConfig(
@@ -51,13 +66,13 @@ class HDF5Daemon(AbstractDataManager):
 
         else:
             if clean_tables:
-                if os.path.exists(f"../dataStorage/{cfg['hdf5_database_file']}"):
-                    os.remove(f"../dataStorage/{cfg['hdf5_database_file']}")
-                    os.remove(f"../dataStorage/pd_{cfg['hdf5_database_file']}")
+                if os.path.exists(f"../dataStorage/{self.cfg['hdf5_database_file']}"):
+                    os.remove(f"../dataStorage/{self.cfg['hdf5_database_file']}")
+                    os.remove(f"../dataStorage/pd_{self.cfg['hdf5_database_file']}")
                     time.sleep(0.5)
         try:
-            self.path_to_hdf5_file = f"../dataStorage/{cfg['hdf5_database_file']}"
-            self.path_to_hdf5_file_pd = f"../dataStorage/pd_{cfg['hdf5_database_file']}"
+            self.path_to_hdf5_file = f"../dataStorage/{self.cfg['hdf5_database_file']}"
+            self.path_to_hdf5_file_pd = f"../dataStorage/pd_{self.cfg['hdf5_database_file']}"
             # self.connection = db_system.File(f"../dataStorage/{cfg['hdf5_database_file']}", "w")
 
             self.connection = pd.HDFStore(self.path_to_hdf5_file_pd, mode='w')
@@ -78,6 +93,12 @@ class HDF5Daemon(AbstractDataManager):
         # self.connection.close()
 
     def check_if_tables_exists_limited_depth(self):
+        if not self.cfg["use_bathes_to_record"]:
+            self.no_batch_check_if_tables_exists_limited_depth()
+        else:
+            self.batch_check_if_table_exists_limited_depth()
+
+    def no_batch_check_if_tables_exists_limited_depth(self):
         _all_exist = True
         _table_name = self.TEMPLATE_FOR_LIMIT_DEPTH_TABLES_NAME.format(self.depth_size)
         if _table_name not in self.connection:
@@ -104,6 +125,12 @@ class HDF5Daemon(AbstractDataManager):
             self.columns_data_sizing[f"ASK_{_pointer}_AMOUNT"] = self.LIMITS_OF_COLUMNS["ASK_AMOUNT"]
 
     def add_order_book_content_limited_depth(self, bids, asks, change_id, timestamp, instrument_name):
+        if not self.cfg["use_bathes_to_record"]:
+            self.no_batch_add_order_book_content_limited_depth(bids, asks, change_id, timestamp, instrument_name)
+        else:
+            self.batch_add_order_book_content_limited_depth(bids, asks, change_id, timestamp, instrument_name)
+
+    def no_batch_add_order_book_content_limited_depth(self, bids, asks, change_id, timestamp, instrument_name):
         _table_name = self.TEMPLATE_FOR_LIMIT_DEPTH_TABLES_NAME.format(self.depth_size)
 
         bids = sorted(bids, key=lambda x: x[0], reverse=True)
@@ -141,6 +168,25 @@ class HDF5Daemon(AbstractDataManager):
     def add_instrument_init_snapshot(self, instrument_name: str, start_instrument_scrap_time: int,
                                      request_change_id: int, bids_list, asks_list: list[list[str, float, float]]):
         raise ValueError("Raw order book mode for HDF5 not available current now")
+
+    # BATCH BLOCK
+    def batch_check_if_table_exists_limited_depth(self):
+        columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
+        columns.extend(map(lambda x: [f"BID_{x}_PRICE", f"BID_{x}_AMOUNT"], range(self.depth_size)))
+        columns.extend(map(lambda x: [f"ASK_{x}_PRICE", f"ASK_{x}_AMOUNT"], range(self.depth_size)))
+
+        print(flatten(columns))
+
+        # _local = np.zeros(shape=(self.cfg["batch_size"], self.depth_size * 2 + 3))
+        # _local[:] = np.NaN
+        # self.batch_mutable_pointer = 0
+        # self.batch_mode_table_1 = pd.DataFrame(_local, columns=columns)
+        # self.batch_mode_table_2 = pd.DataFrame(_local, columns=columns)
+        # del _local, columns
+        # print(self.batch_mode_table_1)
+
+    def batch_add_order_book_content_limited_depth(self, bids, asks, change_id, timestamp, instrument_name):
+        print('add_batch_mode')
 
 
 if __name__ == "__main__":

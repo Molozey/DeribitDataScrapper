@@ -257,6 +257,8 @@ class DeribitClient(Thread, WebSocketApp):
             logging.warning(f"Instrument {instrument_name} already subscribed")
 
 
+def request_pipeline():
+    pass
 if __name__ == '__main__':
     if cfg["currency"] == "BTC":
         _currency = Currency.BITCOIN
@@ -265,11 +267,8 @@ if __name__ == '__main__':
     else:
         raise ValueError("Unknown currency")
 
-    instruments_list = scrap_available_instruments(currency=_currency)
-    instruments_list.extend(scrap_available_instruments(currency=_currency))
-    instruments_list.extend(scrap_available_instruments(currency=_currency))
-    instruments_list.extend(scrap_available_instruments(currency=_currency))
-    instruments_list.extend(scrap_available_instruments(currency=_currency))
+    # instruments_list = scrap_available_instruments(currency=_currency)
+    instruments_list = ["BTC-PERPETUAL"]
 
     deribitWorker = DeribitClient(test_mode=cfg["test_net"],
                                   enable_traceback=cfg["enable_traceback"],
