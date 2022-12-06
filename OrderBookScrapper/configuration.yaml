@@ -8,13 +8,16 @@ hdf5:
     hdf5_database_file: "HDF_storage.hdf5"
     use_bathes_to_record: True
     batch_size: 2
+    number_of_batch_tables: 4
+    instrumentNameToIdMapFile: "InstrumentNameToIdMap.json"
+
 
 orderBookScrapper:
     depth: 10
     test_net: False
     currency: BTC
     enable_traceback: False
-    enable_database_record: True
+    enable_database_record: False
     clean_database: False
     hearth_beat_time: 60
     group_in_limited_order_book: none
@@ -25,6 +28,6 @@ orderBookScrapper:
 
     database_daemon: hdf5
 
-    add_extra_instruments: ["BTC-PERPETUAL"]
+    add_extra_instruments: ["BTC-PERPETUAL", "ETH-PERPETUAL"]
 
 

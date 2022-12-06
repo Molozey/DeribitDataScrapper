@@ -267,8 +267,8 @@ if __name__ == '__main__':
     else:
         raise ValueError("Unknown currency")
 
-    # instruments_list = scrap_available_instruments(currency=_currency)
-    instruments_list = ["BTC-PERPETUAL"]
+
+    instruments_list = scrap_available_instruments(currency=_currency)
 
     deribitWorker = DeribitClient(test_mode=cfg["test_net"],
                                   enable_traceback=cfg["enable_traceback"],

@@ -1,5 +1,5 @@
 import time
-from typing import Union, Optional
+from typing import Union, Optional, Dict
 
 import numpy as np
 
@@ -8,6 +8,41 @@ import logging
 import yaml
 import os
 import pandas as pd
+import json
+import os
+
+
+class AutoIncrementDict(dict):
+    pointer = -1
+
+    def __init__(self, path_to_file):
+        super().__init__()
+        if not os.path.exists(path_to_file):
+            logging.info("No cached instruments map exist")
+            self.add_instrument(key="EMPTY-INSTRUMENT")
+
+        else:
+            logging.info("Cache instruments map exist")
+            self.download_cache_from_file(path_to_file=path_to_file)
+
+    def download_cache_from_file(self, path_to_file: str):
+        # Load existed instrument map
+        with open(path_to_file, "r") as _file:
+            instrument_name_instrument_id_map = json.load(_file)
+
+        for objects in instrument_name_instrument_id_map.items():
+            self.add_instrument(key=objects[0], value=objects[1])
+
+        self.pointer = max(instrument_name_instrument_id_map.values())
+
+        logging.info(f"Dict map has last pointer equals to {self.pointer}")
+
+    def add_instrument(self, key, value=None):
+        if not value:
+            self.pointer += 1
+            super().__setitem__(key, self.pointer)
+        else:
+            super().__setitem__(key, value)
 
 
 def flatten(list_of_lists):
@@ -32,9 +67,13 @@ class HDF5Daemon(AbstractDataManager):
 
     }
 
-    batch_mode_table_1: Optional[pd.DataFrame] = None
-    batch_mode_table_2: Optional[pd.DataFrame] = None
+    batch_mode_tables_storage: Optional[Dict[int, pd.DataFrame]] = None
+
     batch_mutable_pointer: Optional[int] = None
+    batch_number_of_tables: Optional[int] = None
+    batch_currently_selected_table: Optional[int] = None
+
+    instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
 
     def __init__(self, constant_depth_mode: Union[bool, int], clean_tables: bool = False):
         # Config file
@@ -171,37 +210,69 @@ class HDF5Daemon(AbstractDataManager):
 
     # BATCH BLOCK
     def batch_check_if_table_exists_limited_depth(self):
+        # Dict
+        self.instrument_name_instrument_id_map = AutoIncrementDict(self.cfg["instrumentNameToIdMapFile"])
+        # Create columns for tmp tables
         columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
         columns.extend(map(lambda x: [f"BID_{x}_PRICE", f"BID_{x}_AMOUNT"], range(self.depth_size)))
         columns.extend(map(lambda x: [f"ASK_{x}_PRICE", f"ASK_{x}_AMOUNT"], range(self.depth_size)))
 
-        print(flatten(columns))
+        columns = flatten(columns)
+        _local = np.zeros(shape=(self.cfg["batch_size"], self.depth_size * 4 + 3))
+        _local[:] = np.NaN
+        self.batch_mutable_pointer = 0
+        self.batch_currently_selected_table = 0
+        # Create tmp tables
+        self.batch_mode_tables_storage = {_: pd.DataFrame(_local, columns=columns)
+                                          for _ in range(self.cfg["number_of_batch_tables"])}
 
-        # _local = np.zeros(shape=(self.cfg["batch_size"], self.depth_size * 2 + 3))
-        # _local[:] = np.NaN
-        # self.batch_mutable_pointer = 0
-        # self.batch_mode_table_1 = pd.DataFrame(_local, columns=columns)
-        # self.batch_mode_table_2 = pd.DataFrame(_local, columns=columns)
-        # del _local, columns
-        # print(self.batch_mode_table_1)
+        assert len(self.batch_mode_tables_storage) == self.cfg["number_of_batch_tables"]
+
+        print(self.batch_mode_tables_storage[self.batch_currently_selected_table])
+        del _local, columns
+        logging.info(f"""
+        TMP tables for batching has been created. Number of tables = ({len(self.batch_mode_tables_storage)}),
+        Size of one table is ({self.batch_mode_tables_storage[0].shape})  
+        """)
 
     def batch_add_order_book_content_limited_depth(self, bids, asks, change_id, timestamp, instrument_name):
-        print('add_batch_mode')
+
+        # Refresh tables when filled
+        self.batch_mutable_pointer += 1
+        print(f'Table pointer = {self.batch_mutable_pointer}')
+        if self.batch_mutable_pointer > self.cfg["batch_size"]:
+            self.batch_mutable_pointer = 0
+            self.batch_currently_selected_table += 1
+            logging.info(f'TMP table has been filled. Setting pointer to zero. Start transfer data to db ({self.batch_currently_selected_table})')
+            if self.batch_currently_selected_table == len(self.batch_mode_tables_storage):
+                self.batch_currently_selected_table = 0
+
+            # Send request to database
+        else:
+            # Add new line to tmp table
+            pass
+
 
 
 if __name__ == "__main__":
     # Testing
     hdf5Daemon = HDF5Daemon(2, True)
-    hdf5Daemon.add_order_book_content_limited_depth(bids=[[0.1, 0.11], [0.2, 0.22]],
-                                                    asks=[[0.3, 0.33], [0.4, 0.44]],
-                                                    change_id=12312,
-                                                    timestamp="231231213",
-                                                    instrument_name="BTC-p")
-
-    hdf5Daemon.add_order_book_content_limited_depth(bids=[[0.11231, 0.1123123], [0.2, 0.22]],
-                                                    asks=[[0.32312, 0.321313], [0.4, 0.44]],
-                                                    change_id=12312321,
-                                                    timestamp="231231213",
-                                                    instrument_name="BTC-p")
+    # hdf5Daemon.add_order_book_content_limited_depth(bids=[[0.1, 0.11], [0.2, 0.22]],
+    #                                                 asks=[[0.3, 0.33], [0.4, 0.44]],
+    #                                                 change_id=12312,
+    #                                                 timestamp="231231213",
+    #                                                 instrument_name="BTC-p")
+    #
+    # hdf5Daemon.add_order_book_content_limited_depth(bids=[[0.11231, 0.1123123], [0.2, 0.22]],
+    #                                                 asks=[[0.32312, 0.321313], [0.4, 0.44]],
+    #                                                 change_id=12312321,
+    #                                                 timestamp="231231213",
+    #                                                 instrument_name="BTC-p")
+    #
+    # hdf5Daemon.add_order_book_content_limited_depth(bids=[[0.11123231, 0.1123123], [0.2, 0.22]],
+    #                                                 asks=[[0.3212312312, 0.321313], [0.4, 0.44]],
+    #                                                 change_id=1232131239423412312321,
+    #                                                 timestamp="231231213",
+    #                                                 instrument_name="BTC-p")
     file = hdf5Daemon.connection
     file.close()
