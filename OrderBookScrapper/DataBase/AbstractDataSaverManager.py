@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 from pandas import DataFrame
@@ -50,13 +51,13 @@ class AutoIncrementDict(dict):
 
 
 class AbstractDataManager(ABC):
-
     instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
     circular_batch_tables: Dict[int, DataFrame]
 
     batch_mutable_pointer: Optional[int] = None
     batch_number_of_tables: Optional[int] = None
     batch_currently_selected_table: Optional[int] = None
+    async_loop = asyncio.new_event_loop()
 
     def __init__(self, config_path):
         # Config file
@@ -73,55 +74,67 @@ class AbstractDataManager(ABC):
 
         # Download instrument hashMap
         self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
-                                                                   self.cfg["record_system"]["instrumentNameToIdMapFile"])
+                                                                   self.cfg["record_system"][
+                                                                       "instrumentNameToIdMapFile"])
 
+        # Check if all structure and content of record system is correct
+        self.async_loop.run_until_complete(self.async_loop.create_task(self._connect_to_database()))
+        self.async_loop.run_until_complete(self.async_loop.create_task(self._validate_existing_of_database_structure()))
+
+    async def _validate_existing_of_database_structure(self):
+        """
+        Validate correct structure of record system. Check if all need tables are exist.
+        :return:
+        """
         # Check if storages exists
         if self.cfg["orderBookScrapper"]["enable_database_record"]:
-            self._create_not_exist_database()
+            await self._create_not_exist_database()
         else:
             logging.warning("Selected no record system")
 
         if self.cfg["record_system"]["clean_database_at_startup"]:
-            self._clean_exist_database()
+            await self._clean_exist_database()
+
+        return None
 
     @abstractmethod
-    def _clean_exist_database(self):
+    async def _connect_to_database(self):
         pass
 
     @abstractmethod
-    def _create_not_exist_database(self):
+    async def _clean_exist_database(self):
         pass
 
     @abstractmethod
-    def add_order_book_content_limited_depth(self, bids, asks, change_id, timestamp, instrument_name):
+    async def _create_not_exist_database(self):
+        pass
+
+    @abstractmethod
+    def _add_order_book_content_limited_depth(self, bids, asks, change_id, timestamp, instrument_name):
         pass
 
     @abstractmethod
     def _add_instrument_change_order_book_unlimited_depth(self, request_change_id: int, request_previous_change_id: int,
-                                                         change_timestamp: int,
-                                                         bids_list: list[list[str, float, float]],
-                                                         asks_list: list[list[str, float, float]]
-                                                         ):
+                                                          change_timestamp: int,
+                                                          bids_list: list[list[str, float, float]],
+                                                          asks_list: list[list[str, float, float]]
+                                                          ):
         pass
 
     @abstractmethod
     def _add_instrument_init_snapshot(self, instrument_name: str,
-                                     start_instrument_scrap_time: int,
-                                     request_change_id: int,
-                                     bids_list,
-                                     asks_list: list[list[str, float, float]]
-                                     ):
-        pass
-
-    @abstractmethod
-    def _query_constant_depth_mode(self):
-        pass
-
-    @abstractmethod
-    def _query_unlimited_depth_mode(self):
+                                      start_instrument_scrap_time: int,
+                                      request_change_id: int,
+                                      bids_list,
+                                      asks_list: list[list[str, float, float]]
+                                      ):
         pass
 
     def _create_tmp_batch_tables(self):
+        """
+        Creates tmp batches for batch record system.
+        :return:
+        """
         # Dict
         self.instrument_name_instrument_id_map = \
             AutoIncrementDict(self.cfg["record_system"]["instrumentNameToIdMapFile"])
@@ -148,3 +161,10 @@ class AbstractDataManager(ABC):
         Size of one table is ({self.circular_batch_tables[0].shape})  
         """)
 
+    @abstractmethod
+    def _record_to_database_limited_depth_mode(self, record_dataframe: DataFrame):
+        pass
+
+    @abstractmethod
+    def _record_to_database_unlimited_depth_mode(self, record_dataframe: DataFrame):
+        pass

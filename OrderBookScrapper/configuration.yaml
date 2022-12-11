@@ -16,14 +16,14 @@ record_system:
     size_of_tmp_batch_table: 2
     instrumentNameToIdMapFile: "InstrumentNameToIdMap.json"
 
-    clean_database_at_startup: False
+    clean_database_at_startup: True
 
 orderBookScrapper:
     depth: 10
     test_net: False
     currency: BTC
     enable_traceback: False
-    enable_database_record: False
+    enable_database_record: True
     clean_database: False
     hearth_beat_time: 60
     group_in_limited_order_book: none
