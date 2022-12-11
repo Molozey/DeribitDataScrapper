@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, Optional
 from pandas import DataFrame
 import os
 import logging
@@ -50,10 +50,9 @@ class AutoIncrementDict(dict):
 
 
 class AbstractDataManager(ABC):
+
     instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
     circular_batch_tables: Dict[int, DataFrame]
-
-    batch_mode_tables_storage: Optional[Dict[int, pd.DataFrame]] = None
 
     batch_mutable_pointer: Optional[int] = None
     batch_number_of_tables: Optional[int] = None
@@ -72,12 +71,33 @@ class AbstractDataManager(ABC):
         else:
             raise ValueError("Error in depth")
 
+        # Download instrument hashMap
+        self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
+                                                                   self.cfg["record_system"]["instrumentNameToIdMapFile"])
+
+        # Check if storages exists
+        if self.cfg["orderBookScrapper"]["enable_database_record"]:
+            self._create_not_exist_database()
+        else:
+            logging.warning("Selected no record system")
+
+        if self.cfg["record_system"]["clean_database_at_startup"]:
+            self._clean_exist_database()
+
+    @abstractmethod
+    def _clean_exist_database(self):
+        pass
+
+    @abstractmethod
+    def _create_not_exist_database(self):
+        pass
+
     @abstractmethod
     def add_order_book_content_limited_depth(self, bids, asks, change_id, timestamp, instrument_name):
         pass
 
     @abstractmethod
-    def add_instrument_change_order_book_unlimited_depth(self, request_change_id: int, request_previous_change_id: int,
+    def _add_instrument_change_order_book_unlimited_depth(self, request_change_id: int, request_previous_change_id: int,
                                                          change_timestamp: int,
                                                          bids_list: list[list[str, float, float]],
                                                          asks_list: list[list[str, float, float]]
@@ -85,7 +105,7 @@ class AbstractDataManager(ABC):
         pass
 
     @abstractmethod
-    def add_instrument_init_snapshot(self, instrument_name: str,
+    def _add_instrument_init_snapshot(self, instrument_name: str,
                                      start_instrument_scrap_time: int,
                                      request_change_id: int,
                                      bids_list,
@@ -93,28 +113,38 @@ class AbstractDataManager(ABC):
                                      ):
         pass
 
-    def create_tmp_batch_tables(self):
+    @abstractmethod
+    def _query_constant_depth_mode(self):
+        pass
+
+    @abstractmethod
+    def _query_unlimited_depth_mode(self):
+        pass
+
+    def _create_tmp_batch_tables(self):
         # Dict
-        self.instrument_name_instrument_id_map = AutoIncrementDict(self.cfg["instrumentNameToIdMapFile"])
+        self.instrument_name_instrument_id_map = \
+            AutoIncrementDict(self.cfg["record_system"]["instrumentNameToIdMapFile"])
         # Create columns for tmp tables
         columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
         columns.extend(map(lambda x: [f"BID_{x}_PRICE", f"BID_{x}_AMOUNT"], range(self.depth_size)))
         columns.extend(map(lambda x: [f"ASK_{x}_PRICE", f"ASK_{x}_AMOUNT"], range(self.depth_size)))
 
         columns = flatten(columns)
-        _local = np.zeros(shape=(self.cfg["batch_size"], self.depth_size * 4 + 3))
+        _local = np.zeros(shape=(self.cfg["record_system"]["size_of_tmp_batch_table"], self.depth_size * 4 + 3))
         _local[:] = np.NaN
         self.batch_mutable_pointer = 0
         self.batch_currently_selected_table = 0
         # Create tmp tables
-        self.batch_mode_tables_storage = {_: pd.DataFrame(_local, columns=columns)
-                                          for _ in range(self.cfg["number_of_batch_tables"])}
+        self.circular_batch_tables = {_: DataFrame(_local, columns=columns)
+                                      for _ in range(self.cfg["record_system"]["number_of_tmp_tables"])}
 
-        assert len(self.batch_mode_tables_storage) == self.cfg["number_of_batch_tables"]
+        assert len(self.circular_batch_tables) == self.cfg["record_system"]["number_of_tmp_tables"]
 
-        print(self.batch_mode_tables_storage[self.batch_currently_selected_table])
+        print(self.circular_batch_tables[self.batch_currently_selected_table])
         del _local, columns
         logging.info(f"""
-        TMP tables for batching has been created. Number of tables = ({len(self.batch_mode_tables_storage)}),
-        Size of one table is ({self.batch_mode_tables_storage[0].shape})  
+        TMP tables for batching has been created. Number of tables = ({len(self.circular_batch_tables)}),
+        Size of one table is ({self.circular_batch_tables[0].shape})  
         """)
+

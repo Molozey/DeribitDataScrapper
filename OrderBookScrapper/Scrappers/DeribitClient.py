@@ -1,5 +1,7 @@
+import asyncio
 import time
 import warnings
+from typing import Optional, Union
 
 from OrderBookScrapper.DataBase.MySQLDaemon import MySqlDaemon
 from OrderBookScrapper.DataBase.HDF5Daemon import HDF5Daemon
@@ -40,6 +42,9 @@ def scrap_available_instruments(currency: Currency):
 
     # TODO: uncomment
     selected_maturity = int(input("Select number of interested maturity "))
+    if selected_maturity == -1:
+        warnings.warn("Selected list of instruments is empty")
+        return []
     # selected_maturity = 3
     selected_maturity = available_maturities.iloc[selected_maturity]['DeribitNaming']
     print('\nYou select:', selected_maturity)
@@ -64,8 +69,8 @@ def scrap_available_instruments(currency: Currency):
 
 
 class DeribitClient(Thread, WebSocketApp):
-    websocket: WebSocketApp | None
-    database: MySqlDaemon | HDF5Daemon | None
+    websocket: Optional[WebSocketApp]
+    database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
 
     def __init__(self, test_mode: bool = False, enable_traceback: bool = True, enable_database_record: bool = True,
                  clean_database=False, constant_depth_order_book: bool | int = False, instruments_listed: list = []):
@@ -87,29 +92,31 @@ class DeribitClient(Thread, WebSocketApp):
         # Set storages for requested data
         self.instrument_requested = set()
         if enable_database_record:
-            if cfg["database_daemon"] == 'mysql':
-                if type(constant_depth_order_book) == int:
-                    self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
-                                                clean_tables=clean_database)
-                elif constant_depth_order_book is False:
-                    self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
-                                                clean_tables=clean_database)
-                else:
-                    raise ValueError('Unavailable value of depth order book mode')
-                time.sleep(1)
+            match cfg["database_daemon"]:
+                case 'mysql':
+                    if type(constant_depth_order_book) == int:
+                        self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
+                                                    clean_tables=clean_database)
+                    elif constant_depth_order_book is False:
+                        self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
+                                                    clean_tables=clean_database)
+                    else:
+                        raise ValueError('Unavailable value of depth order book mode')
+                    time.sleep(1)
 
-            if cfg["database_daemon"] == "hdf5":
-                if type(constant_depth_order_book) == int:
-                    self.database = HDF5Daemon(constant_depth_mode=constant_depth_order_book,
-                                               clean_tables=clean_database)
-                elif constant_depth_order_book is False:
-                    self.database = HDF5Daemon(constant_depth_mode=constant_depth_order_book,
-                                               clean_tables=clean_database)
-                else:
-                    raise ValueError('Unavailable value of depth order book mode')
-                time.sleep(1)
-        else:
-            self.database = None
+                case "hdf5":
+                    if type(constant_depth_order_book) == int:
+                        self.database = HDF5Daemon(constant_depth_mode=constant_depth_order_book,
+                                                   clean_tables=clean_database)
+                    elif constant_depth_order_book is False:
+                        self.database = HDF5Daemon(constant_depth_mode=constant_depth_order_book,
+                                                   clean_tables=clean_database)
+                    else:
+                        raise ValueError('Unavailable value of depth order book mode')
+                    time.sleep(1)
+                case _:
+                    logging.warning("Unknown database daemon selected")
+                    self.database = None
 
     def _set_exchange(self):
         if self.testMode:
@@ -164,7 +171,6 @@ class DeribitClient(Thread, WebSocketApp):
                 if 'change' and 'type' not in response['params']['data']:
 
                     if self.database:
-
                         self.database.add_order_book_content_limited_depth(
                             change_id=response['params']['data']['change_id'],
                             timestamp=response['params']['data']['timestamp'],
@@ -204,30 +210,12 @@ class DeribitClient(Thread, WebSocketApp):
 
     def _on_open(self, websocket):
         logging.info("Client start his work")
-        self.websocket.send(json.dumps(MSG_LIST.hello_message()))
-
-        # Set heartbeat
-        self.send_new_request(MSG_LIST.set_heartbeat(cfg["hearth_beat_time"]))
-        # Send all subscriptions
-        for _instrument_name in self.instruments_list:
-            if cfg["depth"] is False:
-                self.make_new_subscribe_all_book(instrument_name=_instrument_name)
-            else:
-                self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-                                                                     depth=cfg["depth"],
-                                                                     group=cfg["group_in_limited_order_book"])
-
-        # Extra like BTC-PERPETUAL
-        for _instrument_name in cfg["add_extra_instruments"]:
-            if cfg["depth"] is False:
-                self.make_new_subscribe_all_book(instrument_name=_instrument_name)
-            else:
-                self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-                                                                     depth=cfg["depth"],
-                                                                     group=cfg["group_in_limited_order_book"])
+        request_pipeline(self)
 
     def send_new_request(self, request: dict):
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
+        # TODO: do it better. Unsync.
+        time.sleep(.1)
 
     def make_new_subscribe_all_book(self, instrument_name: str, type_of_data="book", interval="100ms"):
         if instrument_name not in self.instrument_requested:
@@ -257,16 +245,38 @@ class DeribitClient(Thread, WebSocketApp):
             logging.warning(f"Instrument {instrument_name} already subscribed")
 
 
-def request_pipeline():
-    pass
-if __name__ == '__main__':
-    if cfg["currency"] == "BTC":
-        _currency = Currency.BITCOIN
-    elif cfg["currency"] == "ETH":
-        _currency = Currency.ETHER
-    else:
-        raise ValueError("Unknown currency")
+def request_pipeline(websocket: DeribitClient):
+    print("Start")
+    # Set heartbeat
+    websocket.send_new_request(MSG_LIST.set_heartbeat(cfg["hearth_beat_time"]))
+    # Send all subscriptions
+    for _instrument_name in websocket.instruments_list:
+        if cfg["depth"] is False:
+            websocket.make_new_subscribe_all_book(instrument_name=_instrument_name)
+        else:
+            websocket.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
+                                                             depth=cfg["depth"],
+                                                             group=cfg["group_in_limited_order_book"])
 
+    # Extra like BTC-PERPETUAL
+    for _instrument_name in cfg["add_extra_instruments"]:
+        print("Extra:", _instrument_name)
+        if cfg["depth"] is False:
+            websocket.make_new_subscribe_all_book(instrument_name=_instrument_name)
+        else:
+            websocket.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
+                                                             depth=cfg["depth"],
+                                                             group=cfg["group_in_limited_order_book"])
+
+
+if __name__ == '__main__':
+    match cfg["currency"]:
+        case "BTC":
+            _currency = Currency.BITCOIN
+        case "ETH":
+            _currency = Currency.ETHER
+        case _:
+            raise ValueError("Unknown currency")
 
     instruments_list = scrap_available_instruments(currency=_currency)
 
@@ -280,25 +290,3 @@ if __name__ == '__main__':
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(
     time.sleep(1)
-    # Send Hello Message
-    # deribitWorker.send_new_request(MSG_LIST.hello_message())
-    # Set heartbeat
-    # deribitWorker.send_new_request(MSG_LIST.set_heartbeat(cfg["hearth_beat_time"]))
-    # Send all subscriptions
-
-    # for _instrument_name in instruments_list:
-    #     if cfg["depth"] is False:
-    #         deribitWorker.make_new_subscribe_all_book(instrument_name=_instrument_name)
-    #     else:
-    #         deribitWorker.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-    #                                                              depth=cfg["depth"],
-    #                                                              group=cfg["group_in_limited_order_book"])
-    #
-    # # Extra like BTC-PERPETUAL
-    # for _instrument_name in cfg["add_extra_instruments"]:
-    #     if cfg["depth"] is False:
-    #         deribitWorker.make_new_subscribe_all_book(instrument_name=_instrument_name)
-    #     else:
-    #         deribitWorker.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-    #                                                              depth=cfg["depth"],
-    #                                                              group=cfg["group_in_limited_order_book"])

@@ -4,13 +4,19 @@ mysql:
     database: DeribitOrderBook
     use_bathes_to_record: False
 
+    reconnect_max_attempts: 5
+    reconnect_wait_time: 1
+
 hdf5:
     hdf5_database_file: "HDF_storage.hdf5"
-    use_bathes_to_record: True
-    batch_size: 2
-    number_of_batch_tables: 4
+
+record_system:
+    use_batches_to_record: True
+    number_of_tmp_tables: 5
+    size_of_tmp_batch_table: 2
     instrumentNameToIdMapFile: "InstrumentNameToIdMap.json"
 
+    clean_database_at_startup: False
 
 orderBookScrapper:
     depth: 10

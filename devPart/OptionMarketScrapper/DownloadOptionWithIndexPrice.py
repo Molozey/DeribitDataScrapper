@@ -9,7 +9,6 @@ import numpy as np
 from datetime import datetime
 
 
-
 def download_data_for_SABR(currency: Currency, save_information=False):
     answer = send_request(get_instruments_by_currency_request(currency=currency,
                                                               kind=InstrumentType.OPTION,
@@ -43,7 +42,7 @@ def download_data_for_SABR(currency: Currency, save_information=False):
     print(get_underlying)
     # Download underlying
     deribit_old = DeribitConnectionOld("")
-    df = deribit_old.get_instrument_last_prices(get_underlying, 10_00, number_of_requests=5,
+    df = deribit_old.get_instrument_last_prices(get_underlying, 10_000, number_of_requests=10,
                                             date_of_start_loading_data=CURRENT_TIME)
     df.index = pd.to_datetime(df.timestamp * 10 ** 6)
     underlyingBars = DeribitConnectionOld.create_bars(df)
@@ -78,7 +77,7 @@ def download_data_for_SABR(currency: Currency, save_information=False):
 
 if __name__ == "__main__":
     SAVE_INFO = True
-    DELETE_OLD = False
+    DELETE_OLD = True
     SAVE_STORAGE_NAME = "saveStorage"
     if SAVE_INFO:
         import os
