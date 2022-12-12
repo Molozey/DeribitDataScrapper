@@ -17,17 +17,13 @@ import logging
 import json
 import yaml
 
-with open("../configuration.yaml", "r") as ymlfile:
-    cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)["orderBookScrapper"]
 
-
-def scrap_available_instruments(currency: Currency):
+def scrap_available_instruments(currency: Currency, cfg):
     from OrderBookScrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request
     from OrderBookScrapper.Utils.AvailableInstrumentType import InstrumentType
     from OrderBookScrapper.SyncLib.Scrapper import send_request
     import pandas as pd
     import numpy as np
-
     make_subscriptions_list = send_request(get_instruments_by_currency_request(currency=currency,
                                                                                kind=InstrumentType.OPTION,
                                                                                expired=False))
@@ -68,13 +64,44 @@ def scrap_available_instruments(currency: Currency):
     return selected
 
 
+def validate_configuration_file(configuration_path: str) -> dict:
+    with open(configuration_path, "r") as ymlfile:
+        cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+    if type(cfg["orderBookScrapper"]["depth"]) != int:
+        raise TypeError("Invalid type for scrapper configuration")
+    if type(cfg["orderBookScrapper"]["test_net"]) != bool:
+        raise TypeError("Invalid type for scrapper configuration")
+    if type(cfg["orderBookScrapper"]["enable_database_record"]) != bool:
+        raise TypeError("Invalid type for scrapper configuration")
+    if type(cfg["orderBookScrapper"]["clean_database"]) != bool:
+        raise TypeError("Invalid type for scrapper configuration")
+    if type(cfg["orderBookScrapper"]["hearth_beat_time"]) != int:
+        raise TypeError("Invalid type for scrapper configuration")
+    if cfg["orderBookScrapper"]["database_daemon"] != ("hdf5" or "mysql"):
+        raise TypeError("Invalid type for scrapper configuration")
+    if type(cfg["orderBookScrapper"]["add_extra_instruments"]) != list:
+        raise TypeError("Invalid type for scrapper configuration")
+    if cfg["orderBookScrapper"]["scrapper_body"] != "OrderBook":
+        raise NotImplementedError
+    #
+    if type(cfg["record_system"]["use_batches_to_record"]) != bool:
+        raise TypeError("Invalid type for record system configuration")
+    if type(cfg["record_system"]["number_of_tmp_tables"]) != int:
+        raise TypeError("Invalid type for record system configuration")
+    if type(cfg["record_system"]["size_of_tmp_batch_table"]) != int:
+        raise TypeError("Invalid type for record system configuration")
+
+    return cfg
+
+
 class DeribitClient(Thread, WebSocketApp):
     websocket: Optional[WebSocketApp]
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
 
-    def __init__(self, test_mode: bool = False, enable_traceback: bool = True, enable_database_record: bool = True,
+    def __init__(self, cfg, test_mode: bool = False, enable_traceback: bool = True, enable_database_record: bool = True,
                  clean_database=False, constant_depth_order_book: bool | int = False, instruments_listed: list = []):
 
+        self.configuration = cfg
         Thread.__init__(self)
         self.instruments_list = instruments_listed
         self.testMode = test_mode
@@ -85,14 +112,14 @@ class DeribitClient(Thread, WebSocketApp):
         self.enable_traceback = enable_traceback
         # Set logger settings
         logging.basicConfig(
-            level=cfg["logger_level"],
+            level=self.configuration["logger_level"],
             format='%(asctime)s | %(levelname)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         # Set storages for requested data
         self.instrument_requested = set()
         if enable_database_record:
-            match cfg["database_daemon"]:
+            match self.configuration["database_daemon"]:
                 case 'mysql':
                     if type(constant_depth_order_book) == int:
                         self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
@@ -210,7 +237,7 @@ class DeribitClient(Thread, WebSocketApp):
 
     def _on_open(self, websocket):
         logging.info("Client start his work")
-        request_pipeline(self)
+        request_pipeline(self, self.configuration)
 
     def send_new_request(self, request: dict):
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
@@ -245,7 +272,7 @@ class DeribitClient(Thread, WebSocketApp):
             logging.warning(f"Instrument {instrument_name} already subscribed")
 
 
-def request_pipeline(websocket: DeribitClient):
+def request_pipeline(websocket: DeribitClient, cfg):
     print("Start")
     # Set heartbeat
     websocket.send_new_request(MSG_LIST.set_heartbeat(cfg["hearth_beat_time"]))
@@ -270,7 +297,8 @@ def request_pipeline(websocket: DeribitClient):
 
 
 if __name__ == '__main__':
-    match cfg["currency"]:
+    configuration = validate_configuration_file("../configuration.yaml")
+    match configuration['orderBookScrapper']["currency"]:
         case "BTC":
             _currency = Currency.BITCOIN
         case "ETH":
@@ -278,13 +306,14 @@ if __name__ == '__main__':
         case _:
             raise ValueError("Unknown currency")
 
-    instruments_list = scrap_available_instruments(currency=_currency)
+    instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
 
-    deribitWorker = DeribitClient(test_mode=cfg["test_net"],
-                                  enable_traceback=cfg["enable_traceback"],
-                                  enable_database_record=cfg["enable_database_record"],
-                                  clean_database=cfg["clean_database"],
-                                  constant_depth_order_book=cfg["depth"],
+    deribitWorker = DeribitClient(cfg=configuration['orderBookScrapper'],
+                                  test_mode=configuration['orderBookScrapper']["test_net"],
+                                  enable_traceback=configuration['orderBookScrapper']["enable_traceback"],
+                                  enable_database_record=configuration['orderBookScrapper']["enable_database_record"],
+                                  clean_database=configuration['orderBookScrapper']["clean_database"],
+                                  constant_depth_order_book=configuration['orderBookScrapper']["depth"],
                                   instruments_listed=instruments_list)
     deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection

@@ -8,14 +8,7 @@ import json
 import yaml
 import numpy as np
 
-
-def flatten(list_of_lists):
-    if len(list_of_lists) == 0:
-        return list_of_lists
-    if isinstance(list_of_lists[0], list):
-        return flatten(list_of_lists[0]) + flatten(list_of_lists[1:])
-    return list_of_lists[:1] + flatten(list_of_lists[1:])
-
+from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription, OrderBookSubscription
 
 class AutoIncrementDict(dict):
     pointer = -1
@@ -59,7 +52,8 @@ class AbstractDataManager(ABC):
     batch_currently_selected_table: Optional[int] = None
     async_loop = asyncio.new_event_loop()
 
-    def __init__(self, config_path):
+    subscription_type: Optional[AbstractSubscription] = None
+    def __init__(self, config_path, subscription_type: Optional[AbstractSubscription] = OrderBookSubscription):
         # Config file
         with open(config_path, "r") as ymlfile:
             self.cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
@@ -80,6 +74,8 @@ class AbstractDataManager(ABC):
         # Check if all structure and content of record system is correct
         self.async_loop.run_until_complete(self.async_loop.create_task(self._connect_to_database()))
         self.async_loop.run_until_complete(self.async_loop.create_task(self._validate_existing_of_database_structure()))
+        # Create tmp_storages
+        self._create_tmp_batch_tables()
 
     async def _validate_existing_of_database_structure(self):
         """
@@ -130,36 +126,49 @@ class AbstractDataManager(ABC):
                                       ):
         pass
 
+    # TODO: dynamic creation for extra fields.
     def _create_tmp_batch_tables(self):
         """
         Creates tmp batches for batch record system.
         :return:
         """
-        # Dict
-        self.instrument_name_instrument_id_map = \
-            AutoIncrementDict(self.cfg["record_system"]["instrumentNameToIdMapFile"])
-        # Create columns for tmp tables
         columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
         columns.extend(map(lambda x: [f"BID_{x}_PRICE", f"BID_{x}_AMOUNT"], range(self.depth_size)))
         columns.extend(map(lambda x: [f"ASK_{x}_PRICE", f"ASK_{x}_AMOUNT"], range(self.depth_size)))
 
         columns = flatten(columns)
-        _local = np.zeros(shape=(self.cfg["record_system"]["size_of_tmp_batch_table"], self.depth_size * 4 + 3))
-        _local[:] = np.NaN
         self.batch_mutable_pointer = 0
         self.batch_currently_selected_table = 0
-        # Create tmp tables
-        self.circular_batch_tables = {_: DataFrame(_local, columns=columns)
-                                      for _ in range(self.cfg["record_system"]["number_of_tmp_tables"])}
 
-        assert len(self.circular_batch_tables) == self.cfg["record_system"]["number_of_tmp_tables"]
+        # Create columns for tmp tables
+        if self.cfg["record_system"]["use_batches_to_record"]:
+            _local = np.zeros(shape=(self.cfg["record_system"]["size_of_tmp_batch_table"], self.depth_size * 4 + 3))
+            _local[:] = np.NaN
+            # Create tmp tables
+            self.circular_batch_tables = {_: DataFrame(_local, columns=columns)
+                                          for _ in range(self.cfg["record_system"]["number_of_tmp_tables"])}
 
-        print(self.circular_batch_tables[self.batch_currently_selected_table])
-        del _local, columns
-        logging.info(f"""
-        TMP tables for batching has been created. Number of tables = ({len(self.circular_batch_tables)}),
-        Size of one table is ({self.circular_batch_tables[0].shape})  
-        """)
+            assert len(self.circular_batch_tables) == self.cfg["record_system"]["number_of_tmp_tables"]
+
+            # print(self.circular_batch_tables[self.batch_currently_selected_table])
+            del _local, columns
+            logging.info(f"""
+            TMP tables for batching has been created. Number of tables = ({len(self.circular_batch_tables)}),
+            Size of one table is ({self.circular_batch_tables[0].shape})  
+            """)
+        # No batch system enabled
+        else:
+            _local = np.zeros(shape=(1, self.depth_size * 4 + 3))
+            _local[:] = np.NaN
+            # Create tmp tables
+            self.circular_batch_tables = {0: DataFrame(_local, columns=columns)}
+
+            # print(self.circular_batch_tables[self.batch_currently_selected_table])
+            del _local, columns
+            logging.info(f"""
+            NO BATCH MODE: TMP tables for batching has been created. Number of tables = ({len(self.circular_batch_tables)}),
+            Size of one table is ({self.circular_batch_tables[0].shape})  
+            """)
 
     @abstractmethod
     def _record_to_database_limited_depth_mode(self, record_dataframe: DataFrame):
