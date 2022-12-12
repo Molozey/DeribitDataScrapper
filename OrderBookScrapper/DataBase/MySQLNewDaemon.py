@@ -1,36 +1,32 @@
 import asyncio
 import json
+from typing import Optional
 
 from pandas import DataFrame
 
-from AbstractDataSaverManager import AbstractDataManager
+import OrderBookScrapper.Scrappers.AbstractSubscription
+from OrderBookScrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
 import logging
 import mysql.connector as connector
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsUnlimited import *
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsLimited import *
+from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription
 
 
 class MySqlDaemon(AbstractDataManager):
     """
     Daemon for MySQL record type.
     """
-    # Block with naming
-    _unlimited_main_table = "order_book_content"
-    _unlimited_initial_table = "script_snapshot_id"
-    _unlimited_pairs_table = "script_snapshot_id"
-
-    _limited_table_name_template = "TABLE_DEPTH_{}"
-
     connection: connector.connection.MySQLConnection
     database_cursor: connector.connection.MySQLCursor
 
-    def __init__(self, configuration_path):
+    def __init__(self, configuration_path, subscription_type: Optional[AbstractSubscription]):
         logging.basicConfig(
             level='INFO',
             format='%(asctime)s | %(levelname)s %(module)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-        super().__init__(config_path=configuration_path)
+        super().__init__(config_path=configuration_path, subscription_type=subscription_type)
 
     async def _connect_to_database(self):
         """
@@ -115,19 +111,18 @@ class MySqlDaemon(AbstractDataManager):
         :return:
         """
         if self.depth_size == 0:
-            _truncate_query = """TRUNCATE table {}""".format(self._unlimited_main_table)
-            await self._mysql_post_execution_handler(_truncate_query)
-            _truncate_query = """TRUNCATE table {}""".format(self._unlimited_pairs_table)
-            await self._mysql_post_execution_handler(_truncate_query)
-            _truncate_query = """TRUNCATE table {}""".format(self._unlimited_initial_table)
-            await self._mysql_post_execution_handler(_truncate_query)
-            del _truncate_query
+            for table_name in self.subscription_type.tables_names:
+                _truncate_query = """TRUNCATE table {}""".format(table_name)
+                await self._mysql_post_execution_handler(_truncate_query)
+                del _truncate_query
         # Limited mode
         else:
-            _truncate_query = f"""TRUNCATE table {self._limited_table_name_template.format(
-                self.depth_size)}"""
-            await self._mysql_post_execution_handler(_truncate_query)
-            del _truncate_query
+            for table_name in self.subscription_type.tables_names:
+                _truncate_query = """TRUNCATE table {}""".format(table_name)
+                print(_truncate_query)
+                await self._mysql_post_execution_handler(_truncate_query)
+                print("OK")
+                del _truncate_query
 
     async def _create_not_exist_database(self):
         """
@@ -139,25 +134,12 @@ class MySqlDaemon(AbstractDataManager):
             _all_exist = True
             _query = """SHOW TABLES LIKE '{}'"""
             # script_snapshot_id
-            result = await self._mysql_get_execution_handler(_query.format("script_snapshot_id"))
-            if not result:
-                logging.warning("script_snapshot_id table NOT exist; Start creating...")
-                await self._mysql_post_execution_handler(REQUEST_TO_CREATE_SCRIPT_SNAPSHOT_ID)
-                _all_exist = False
-
-            # pairs_new_old
-            result = await self._mysql_get_execution_handler(_query.format("pairs_new_old"))
-            if not result:
-                logging.warning("pairs_new_old table NOT exist; Start creating...")
-                await self._mysql_post_execution_handler(REQUEST_TO_CREATE_PAIRS_NEW_OLD)
-                _all_exist = False
-
-            # order_book_content
-            result = await self._mysql_get_execution_handler(_query.format("order_book_content"))
-            if not result:
-                logging.warning("order_book_content table NOT exist; Start creating...")
-                await self._mysql_post_execution_handler(REQUEST_TO_CREATE_ORDER_BOOK_CONTENT)
-                _all_exist = False
+            for table_name in self.subscription_type.tables_names:
+                result = await self._mysql_get_execution_handler(_query.format(table_name))
+                if not result:
+                    logging.warning(f"{table_name} table NOT exist; Start creating...")
+                    await self._mysql_post_execution_handler(REQUEST_TO_CREATE_SCRIPT_SNAPSHOT_ID)
+                    _all_exist = False
 
             if _all_exist:
                 logging.info("All need tables already exists. That's good!")
@@ -165,16 +147,16 @@ class MySqlDaemon(AbstractDataManager):
         # Limited mode
         else:
             _all_exist = True
-            _table_name = self._limited_table_name_template.format(self.depth_size)
             _query = """SHOW TABLES LIKE '{}'"""
-            result = await self._mysql_get_execution_handler(_query.format(_table_name))
-            if not result:
-                logging.warning("Limited table with depth {} NOT exist; Start creating...".format(self.depth_size))
-                await self._mysql_post_execution_handler(
-                    REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(_table_name, self.depth_size))
-                _all_exist = False
+            for table_name, table_creation in zip(self.subscription_type.tables_names,
+                                                  self.subscription_type.tables_names_creation):
+                result = await self._mysql_get_execution_handler(_query.format(table_name))
+                if not result:
+                    logging.warning(f"Table {table_name} NOT exist; Start creating...")
+                    await self._mysql_post_execution_handler(
+                        table_creation)
+                    _all_exist = False
 
-            del _table_name
             if _all_exist:
                 logging.info("All need tables already exists. That's good!")
 
@@ -199,7 +181,7 @@ class MySqlDaemon(AbstractDataManager):
 
 
 if __name__ == '__main__':
-    daemon = MySqlDaemon('../configuration.yaml')
+    daemon = MySqlDaemon('../configuration.yaml', subscription_type=OrderBookScrapper.Scrappers.AbstractSubscription.OrderBookSubscriptionCONSTANT(scrapper=None, order_book_depth=2))
     js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989478, 'instrument_name': 'BTC-PERPETUAL', 'change_id': 52016142177, 'bids': [[17132.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
     js = js.replace("'", "\"")
     js = json.loads(js)

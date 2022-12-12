@@ -1,13 +1,17 @@
 import asyncio
+import sys
 import time
 import warnings
-from typing import Optional, Union
+from typing import Optional, Union, Type
 
-from OrderBookScrapper.DataBase.MySQLDaemon import MySqlDaemon
+# from OrderBookScrapper.DataBase.MySQLDaemon import MySqlDaemon
 from OrderBookScrapper.DataBase.HDF5Daemon import HDF5Daemon
+
+from OrderBookScrapper.DataBase.MySQLNewDaemon import MySqlDaemon
 from OrderBookScrapper.Utils import MSG_LIST
 from OrderBookScrapper.Utils.AvailableCurrencies import Currency
 from OrderBookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
+from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription, OrderBookSubscriptionCONSTANT
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
@@ -37,7 +41,8 @@ def scrap_available_instruments(currency: Currency, cfg):
     print("Available maturities: \n", available_maturities)
 
     # TODO: uncomment
-    selected_maturity = int(input("Select number of interested maturity "))
+    # selected_maturity = int(input("Select number of interested maturity "))
+    selected_maturity = -1
     if selected_maturity == -1:
         warnings.warn("Selected list of instruments is empty")
         return []
@@ -94,15 +99,32 @@ def validate_configuration_file(configuration_path: str) -> dict:
     return cfg
 
 
+def subscription_map(scrapper, conf: dict) -> AbstractSubscription:
+    match conf["orderBookScrapper"]["scrapper_body"]:
+        case "OrderBook":
+            return OrderBookSubscriptionCONSTANT(scrapper=scrapper, order_book_depth=conf["orderBookScrapper"]["depth"])
+        case _:
+            raise NotImplementedError
+
+
 class DeribitClient(Thread, WebSocketApp):
     websocket: Optional[WebSocketApp]
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
 
-    def __init__(self, cfg, test_mode: bool = False, enable_traceback: bool = True, enable_database_record: bool = True,
-                 clean_database=False, constant_depth_order_book: bool | int = False, instruments_listed: list = []):
+    def __init__(self, cfg, cfg_path: str, instruments_listed: list = []):
 
+        self.configuration_path = cfg_path
         self.configuration = cfg
+        test_mode = self.configuration['orderBookScrapper']["test_net"]
+        enable_traceback = self.configuration['orderBookScrapper']["enable_traceback"]
+        enable_database_record = bool(self.configuration['orderBookScrapper']["enable_database_record"])
+
+        clean_database = self.configuration['orderBookScrapper']["clean_database"]
+        constant_depth_order_book = self.configuration['orderBookScrapper']["depth"]
+        instruments_listed = instruments_list
+
         Thread.__init__(self)
+        self.subscription_type = subscription_map(scrapper=self, conf=self.configuration)
         self.instruments_list = instruments_listed
         self.testMode = test_mode
         self.exchange_version = self._set_exchange()
@@ -112,21 +134,21 @@ class DeribitClient(Thread, WebSocketApp):
         self.enable_traceback = enable_traceback
         # Set logger settings
         logging.basicConfig(
-            level=self.configuration["logger_level"],
+            level=self.configuration['orderBookScrapper']["logger_level"],
             format='%(asctime)s | %(levelname)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         # Set storages for requested data
         self.instrument_requested = set()
         if enable_database_record:
-            match self.configuration["database_daemon"]:
+            match self.configuration['orderBookScrapper']["database_daemon"]:
                 case 'mysql':
                     if type(constant_depth_order_book) == int:
-                        self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
-                                                    clean_tables=clean_database)
+                        self.database = MySqlDaemon(configuration_path=self.configuration_path,
+                                                    subscription_type=self.subscription_type)
                     elif constant_depth_order_book is False:
-                        self.database = MySqlDaemon(constant_depth_mode=constant_depth_order_book,
-                                                    clean_tables=clean_database)
+                        self.database = MySqlDaemon(configuration_path=self.configuration_path,
+                                                    subscription_type=self.subscription_type)
                     else:
                         raise ValueError('Unavailable value of depth order book mode')
                     time.sleep(1)
@@ -190,46 +212,8 @@ class DeribitClient(Thread, WebSocketApp):
                 # Send test message to approve that connection is still alive
                 self.send_new_request(MSG_LIST.test_message())
                 return
-
-            # SUBSCRIPTION processing
-            if response['method'] == "subscription":
-
-                # ORDER BOOK processing. For constant book depth
-                if 'change' and 'type' not in response['params']['data']:
-
-                    if self.database:
-                        self.database.add_order_book_content_limited_depth(
-                            change_id=response['params']['data']['change_id'],
-                            timestamp=response['params']['data']['timestamp'],
-                            bids=response['params']['data']['bids'],
-                            asks=response['params']['data']['asks'],
-                            instrument_name=response['params']['data']['instrument_name']
-                        )
-                    # raise ValueError("STOP ALL")
-                    return
-
-                # INITIAL SNAPSHOT processing. For unlimited book depth
-                if response['params']['data']['type'] == 'snapshot':
-                    if self.database:
-                        self.database.add_instrument_init_snapshot(
-                            instrument_name=response['params']['data']['instrument_name'],
-                            start_instrument_scrap_time=response['params']['data']['timestamp'],
-                            request_change_id=response['params']['data']['change_id'],
-                            bids_list=response['params']['data']['bids'],
-                            asks_list=response['params']['data']['asks'],
-                        )
-                        return
-                # CHANGE ORDER BOOK processing. For unlimited book depth
-                if response['params']['data']['type'] == 'change':
-                    if self.database:
-                        self.database.add_instrument_change_order_book_unlimited_depth(
-                            request_change_id=response['params']['data']['change_id'],
-                            request_previous_change_id=response['params']['data']['prev_change_id'],
-                            change_timestamp=response['params']['data']['timestamp'],
-                            bids_list=response['params']['data']['bids'],
-                            asks_list=response['params']['data']['asks'],
-                        )
-                        return
+            # TODO
+            self.subscription_type.process_response_from_server(response=response)
 
     def _process_callback(self, response):
         logging.info(response)
@@ -237,63 +221,63 @@ class DeribitClient(Thread, WebSocketApp):
 
     def _on_open(self, websocket):
         logging.info("Client start his work")
-        request_pipeline(self, self.configuration)
+        self.subscription_type.create_subscription_request()
 
     def send_new_request(self, request: dict):
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
         # TODO: do it better. Unsync.
         time.sleep(.1)
 
-    def make_new_subscribe_all_book(self, instrument_name: str, type_of_data="book", interval="100ms"):
-        if instrument_name not in self.instrument_requested:
-            subscription_message = MSG_LIST.make_subscription_all_book(instrument_name, type_of_data=type_of_data,
-                                                                       interval=interval, )
+    # def make_new_subscribe_all_book(self, instrument_name: str, type_of_data="book", interval="100ms"):
+    #     if instrument_name not in self.instrument_requested:
+    #         subscription_message = MSG_LIST.make_subscription_all_book(instrument_name, type_of_data=type_of_data,
+    #                                                                    interval=interval, )
+    #
+    #         self.send_new_request(request=subscription_message)
+    #         self.instrument_requested.add(instrument_name)
+    #     else:
+    #         logging.warning(f"Instrument {instrument_name} already subscribed")
 
-            self.send_new_request(request=subscription_message)
-            self.instrument_requested.add(instrument_name)
-        else:
-            logging.warning(f"Instrument {instrument_name} already subscribed")
-
-    def make_new_subscribe_constant_depth_book(self, instrument_name: str,
-                                               type_of_data="book",
-                                               interval="100ms",
-                                               depth=None,
-                                               group=None):
-        if instrument_name not in self.instrument_requested:
-            subscription_message = MSG_LIST.make_subscription_constant_book_depth(instrument_name,
-                                                                                  type_of_data=type_of_data,
-                                                                                  interval=interval,
-                                                                                  depth=depth,
-                                                                                  group=group)
-
-            self.send_new_request(request=subscription_message)
-            self.instrument_requested.add(instrument_name)
-        else:
-            logging.warning(f"Instrument {instrument_name} already subscribed")
+    # def make_new_subscribe_constant_depth_book(self, instrument_name: str,
+    #                                            type_of_data="book",
+    #                                            interval="100ms",
+    #                                            depth=None,
+    #                                            group=None):
+    #     if instrument_name not in self.instrument_requested:
+    #         subscription_message = MSG_LIST.make_subscription_constant_book_depth(instrument_name,
+    #                                                                               type_of_data=type_of_data,
+    #                                                                               interval=interval,
+    #                                                                               depth=depth,
+    #                                                                               group=group)
+    #
+    #         self.send_new_request(request=subscription_message)
+    #         self.instrument_requested.add(instrument_name)
+    #     else:
+    #         logging.warning(f"Instrument {instrument_name} already subscribed")
 
 
-def request_pipeline(websocket: DeribitClient, cfg):
-    print("Start")
-    # Set heartbeat
-    websocket.send_new_request(MSG_LIST.set_heartbeat(cfg["hearth_beat_time"]))
-    # Send all subscriptions
-    for _instrument_name in websocket.instruments_list:
-        if cfg["depth"] is False:
-            websocket.make_new_subscribe_all_book(instrument_name=_instrument_name)
-        else:
-            websocket.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-                                                             depth=cfg["depth"],
-                                                             group=cfg["group_in_limited_order_book"])
-
-    # Extra like BTC-PERPETUAL
-    for _instrument_name in cfg["add_extra_instruments"]:
-        print("Extra:", _instrument_name)
-        if cfg["depth"] is False:
-            websocket.make_new_subscribe_all_book(instrument_name=_instrument_name)
-        else:
-            websocket.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-                                                             depth=cfg["depth"],
-                                                             group=cfg["group_in_limited_order_book"])
+# def request_pipeline(websocket: DeribitClient, cfg):
+#     print("Start")
+#     # Set heartbeat
+#     websocket.send_new_request(MSG_LIST.set_heartbeat(cfg["hearth_beat_time"]))
+#     # Send all subscriptions
+#     for _instrument_name in websocket.instruments_list:
+#         if cfg["depth"] is False:
+#             websocket.make_new_subscribe_all_book(instrument_name=_instrument_name)
+#         else:
+#             websocket.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
+#                                                              depth=cfg["depth"],
+#                                                              group=cfg["group_in_limited_order_book"])
+#
+#     # Extra like BTC-PERPETUAL
+#     for _instrument_name in cfg["add_extra_instruments"]:
+#         print("Extra:", _instrument_name)
+#         if cfg["depth"] is False:
+#             websocket.make_new_subscribe_all_book(instrument_name=_instrument_name)
+#         else:
+#             websocket.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
+#                                                              depth=cfg["depth"],
+#                                                              group=cfg["group_in_limited_order_book"])
 
 
 if __name__ == '__main__':
@@ -306,15 +290,10 @@ if __name__ == '__main__':
         case _:
             raise ValueError("Unknown currency")
 
+
     instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
 
-    deribitWorker = DeribitClient(cfg=configuration['orderBookScrapper'],
-                                  test_mode=configuration['orderBookScrapper']["test_net"],
-                                  enable_traceback=configuration['orderBookScrapper']["enable_traceback"],
-                                  enable_database_record=configuration['orderBookScrapper']["enable_database_record"],
-                                  clean_database=configuration['orderBookScrapper']["clean_database"],
-                                  constant_depth_order_book=configuration['orderBookScrapper']["depth"],
-                                  instruments_listed=instruments_list)
+    deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml")
     deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(

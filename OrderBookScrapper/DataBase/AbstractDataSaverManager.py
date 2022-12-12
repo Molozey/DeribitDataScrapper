@@ -8,7 +8,8 @@ import json
 import yaml
 import numpy as np
 
-from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription, OrderBookSubscription
+from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription
+
 
 class AutoIncrementDict(dict):
     pointer = -1
@@ -53,11 +54,13 @@ class AbstractDataManager(ABC):
     async_loop = asyncio.new_event_loop()
 
     subscription_type: Optional[AbstractSubscription] = None
-    def __init__(self, config_path, subscription_type: Optional[AbstractSubscription] = OrderBookSubscription):
+
+    def __init__(self, config_path, subscription_type: Optional[AbstractSubscription]):
         # Config file
         with open(config_path, "r") as ymlfile:
             self.cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
+        self.subscription_type = subscription_type
         constant_depth_mode = self.cfg["orderBookScrapper"]["depth"]
         if type(constant_depth_mode) == int:
             self.depth_size = constant_depth_mode
@@ -132,11 +135,7 @@ class AbstractDataManager(ABC):
         Creates tmp batches for batch record system.
         :return:
         """
-        columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
-        columns.extend(map(lambda x: [f"BID_{x}_PRICE", f"BID_{x}_AMOUNT"], range(self.depth_size)))
-        columns.extend(map(lambda x: [f"ASK_{x}_PRICE", f"ASK_{x}_AMOUNT"], range(self.depth_size)))
-
-        columns = flatten(columns)
+        columns = self.subscription_type.create_columns_list()
         self.batch_mutable_pointer = 0
         self.batch_currently_selected_table = 0
 

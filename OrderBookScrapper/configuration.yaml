@@ -20,12 +20,11 @@ record_system:
 
 orderBookScrapper:
     scrapper_body: OrderBook
-
-    depth: 10
+    depth: 2
     test_net: False
     currency: BTC
     enable_traceback: False
-    enable_database_record: False
+    enable_database_record: True
     clean_database: False
     hearth_beat_time: 60
     group_in_limited_order_book: none
