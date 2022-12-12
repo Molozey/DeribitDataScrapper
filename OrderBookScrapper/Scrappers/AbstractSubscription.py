@@ -28,6 +28,11 @@ class AbstractSubscription(ABC):
 
     def __init__(self, scrapper: scrapper_typing):
         self.scrapper = scrapper
+        self._place_here_tables_names_and_creation_requests()
+
+    @abstractmethod
+    def _place_here_tables_names_and_creation_requests(self):
+        pass
 
     @abstractmethod
     def create_columns_list(self) -> list[str]:
@@ -59,8 +64,14 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
     # tables_names = ["order_book_content", "script_snapshot_id", "script_snapshot_id"]
 
     def __init__(self, scrapper: scrapper_typing, order_book_depth: int):
-        super(OrderBookSubscriptionCONSTANT, self).__init__(scrapper=scrapper)
         self.depth: int = order_book_depth
+        self.tables_names = [f"TABLE_DEPTH_{self.depth}"]
+        self.tables_names_creation = list(map(partial(REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT,
+                                                      depth_size=self.depth), self.tables_names))
+
+        super(OrderBookSubscriptionCONSTANT, self).__init__(scrapper=scrapper)
+
+    def _place_here_tables_names_and_creation_requests(self):
         self.tables_names = [f"TABLE_DEPTH_{self.depth}"]
         self.tables_names_creation = list(map(partial(REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT,
                                                       depth_size=self.depth), self.tables_names))
@@ -152,3 +163,30 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
                                                                  depth=self.scrapper.configuration["orderBookScrapper"]["depth"],
                                                                  group=self.scrapper.configuration["orderBookScrapper"]["group_in_limited_order_book"])
+
+class NullSub(AbstractSubscription):
+
+    def _place_here_tables_names_and_creation_requests(self):
+        self.tables_names = ["TEST_TABLE_NULL"]
+        self.tables_names_creation = list(map(partial(REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT,
+                                                      depth_size=2), self.tables_names))
+
+
+    def create_columns_list(self) -> list[str]:
+        columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
+        columns.extend(map(lambda x: [f"BID_{x}_PRICE", f"BID_{x}_AMOUNT"], range(2)))
+        columns.extend(map(lambda x: [f"ASK_{x}_PRICE", f"ASK_{x}_AMOUNT"], range(2)))
+
+        columns = flatten(columns)
+        columns[0] = "TEST_UNIT_TABLE"
+        columns[1] = "UNKNOWN_TABLE"
+        return columns
+
+    def create_subscription_request(self) -> str:
+        pass
+
+    def _process_update_information_line(self, *args) -> list:
+        pass
+
+    def _process_response(self, response: dict):
+        pass
