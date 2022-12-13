@@ -299,10 +299,7 @@ if __name__ == '__main__':
     js = js.replace("'", "\"")
     js = json.loads(js)
     print(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-    print("""[1.67079699e+12 0.00000000e+00 1.71310000e+04 2.00000000e+04
-    1.71315000e+04 6.40200000e+04 1.71320000e+04 3.55300000e+04
-    1.71325000e+04 5.22500000e+04 1.71330000e+04 1.29500000e+04
-    1.71335000e+04 2.78000000e+03]""")
+    print(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
     # deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(
