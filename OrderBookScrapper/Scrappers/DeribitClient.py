@@ -21,6 +21,15 @@ import logging
 import json
 import yaml
 
+# Block with developing module | START
+import yaml
+import sys
+
+with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
+del _file
+# Block with developing module | END
+
 
 def scrap_available_instruments(currency: Currency, cfg):
     from OrderBookScrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request

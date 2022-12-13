@@ -17,6 +17,15 @@ if TYPE_CHECKING:
 else:
     scrapper_typing = object
 
+# Block with developing module | START
+import yaml
+import sys
+
+with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
+del _file
+# Block with developing module | END
+
 
 def flatten(list_of_lists):
     if len(list_of_lists) == 0:
@@ -58,7 +67,7 @@ class AbstractSubscription(ABC):
         pass
 
     @abstractmethod
-    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str):
+    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str) -> DataFrame:
         """
         Need to be implemented. Creates request for database daemon (uses it methods | convert data | e.t.c).
         For example for unlimited depth transfer
@@ -68,14 +77,16 @@ class AbstractSubscription(ABC):
         """
         pass
 
-    def record_to_database(self, record_dataframe: DataFrame, tag_of_data: str = None):
+    def record_to_database(self, record_dataframe: DataFrame, tag_of_data: str = None) -> DataFrame:
         """
         Interface for creation pipeline for recording to database. for example preprocessing or validation data.
+        Also make a copy of data to solve problems that can be caused with mutations.
         :param record_dataframe:
         :param tag_of_data:
         :return:
         """
-        self._record_to_daemon_database_pipeline(record_dataframe=record_dataframe, tag_of_data=tag_of_data)
+        return self._record_to_daemon_database_pipeline(record_dataframe=record_dataframe.copy(),
+                                                        tag_of_data=tag_of_data)
 
 
 class OrderBookSubscriptionCONSTANT(AbstractSubscription):
@@ -180,7 +191,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
                                                         group=self.scrapper.configuration["orderBookScrapper"][
                                                             "group_in_limited_order_book"])
 
-    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str):
+    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str) -> DataFrame:
         return record_dataframe
 
 
@@ -210,7 +221,7 @@ class NullSub(AbstractSubscription):
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         pass
 
-    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str):
+    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str) -> DataFrame:
         pass
 
 

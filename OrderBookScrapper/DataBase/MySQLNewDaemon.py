@@ -1,17 +1,23 @@
 import asyncio
-import json
+from datetime import datetime
 from typing import Optional
 
-import numpy as np
 from pandas import DataFrame
 
-import OrderBookScrapper.Scrappers.AbstractSubscription
 from OrderBookScrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
 import logging
 import mysql.connector as connector
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsUnlimited import *
-from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsLimited import *
 from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription
+
+# Block with developing module | START
+import yaml
+import sys
+
+with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
+del _file
+# Block with developing module | END
 
 
 class MySqlDaemon(AbstractDataManager):
@@ -57,6 +63,8 @@ class MySqlDaemon(AbstractDataManager):
         :param query:
         :return:
         """
+        if developConfiguration["MY_SQL_DAEMON"]["SHOW_QUERY_FOR_POST"]:
+            print(f"POST MYSQL REQUEST: QUERY | {query} | TIME {datetime.now()}")
         flag = 0
         while flag < self.cfg["mysql"]["reconnect_max_attempts"]:
             if flag >= self.cfg["mysql"]["reconnect_max_attempts"]:
@@ -76,6 +84,8 @@ class MySqlDaemon(AbstractDataManager):
         :param query:
         :return:
         """
+        if developConfiguration["MY_SQL_DAEMON"]["SHOW_QUERY_FOR_GET"]:
+            print(f"GET MYSQL REQUEST: QUERY | {query} | TIME {datetime.now()}")
         flag = 0
         while flag < self.cfg["mysql"]["reconnect_max_attempts"]:
             if flag >= self.cfg["mysql"]["reconnect_max_attempts"]:
@@ -120,9 +130,7 @@ class MySqlDaemon(AbstractDataManager):
         else:
             for table_name in self.subscription_type.tables_names:
                 _truncate_query = """TRUNCATE table {}""".format(table_name)
-                print(_truncate_query)
                 await self._mysql_post_execution_handler(_truncate_query)
-                print("OK")
                 del _truncate_query
 
     async def _create_not_exist_database(self):
@@ -165,16 +173,17 @@ class MySqlDaemon(AbstractDataManager):
         else:
             raise NotImplementedError
 
-    def _record_to_database_limited_depth_mode(self, record_dataframe: DataFrame):
-        self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="UNLIMITED")
+    def __record_to_database_limited_depth_mode(self, record_dataframe: DataFrame):
+        print("Called __record")
+        data = self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="LIMITED")
 
-    def _record_to_database_unlimited_depth_mode(self, record_dataframe: DataFrame):
+    def __record_to_database_unlimited_depth_mode(self, record_dataframe: DataFrame):
         # TODO: implement
-        # self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="LIMITED")
+        # self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="UNLIMITED")
         raise NotImplementedError
 
     def _place_data_to_database(self, record_dataframe: DataFrame):
         if self.depth_size == 0:
-            self._record_to_database_unlimited_depth_mode(record_dataframe=record_dataframe)
+            self.__record_to_database_unlimited_depth_mode(record_dataframe=record_dataframe)
         elif (type(self.depth_size) == int) and (self.depth_size > 0):
-            self._record_to_database_limited_depth_mode(record_dataframe=record_dataframe)
+            self.__record_to_database_limited_depth_mode(record_dataframe=record_dataframe)

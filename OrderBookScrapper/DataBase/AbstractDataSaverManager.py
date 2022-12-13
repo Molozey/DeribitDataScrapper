@@ -11,6 +11,15 @@ import numpy as np
 
 from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription
 
+# Block with developing module | START
+import yaml
+import sys
+
+with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
+del _file
+# Block with developing module | END
+
 
 class AutoIncrementDict(dict):
     pointer = -1
@@ -127,16 +136,17 @@ class AbstractDataManager(ABC):
         self.circular_batch_tables[self.batch_currently_selected_table].iloc[self.batch_mutable_pointer] = update_line
         self.batch_mutable_pointer += 1
         if self.batch_mutable_pointer >= self.batch_size_of_table:
-            print("Transfer data\n", self.circular_batch_tables[self.batch_currently_selected_table], "\n")
-            print(f"Pointer In Table: ({self.batch_mutable_pointer}) | Pointer Out Table: ({self.batch_currently_selected_table})")
-            print("=====" * 20)
+            if developConfiguration["DATA_MANAGER"]["SHOW_WHEN_DATA_TRANSFERS"]:
+                print("Transfer data:\n", self.circular_batch_tables[self.batch_currently_selected_table], "\n")
+                print(f"Pointer In Table: ({self.batch_mutable_pointer}) | Pointer Out Table: ({self.batch_currently_selected_table})")
+                print("=====" * 20)
+
             self.batch_mutable_pointer = 0
             self._place_data_to_database(record_dataframe=
                                          self.circular_batch_tables[self.batch_currently_selected_table])
             self.batch_currently_selected_table += 1
             if self.batch_currently_selected_table >= self.batch_number_of_tables:
                 self.batch_currently_selected_table = 0
-
 
     def _create_tmp_batch_tables(self):
         """
@@ -160,7 +170,6 @@ class AbstractDataManager(ABC):
 
             assert len(self.circular_batch_tables) == self.cfg["record_system"]["number_of_tmp_tables"]
 
-            # print(self.circular_batch_tables[self.batch_currently_selected_table])
             del _local, columns
             logging.info(f"""
             TMP tables for batching has been created. Number of tables = ({len(self.circular_batch_tables)}),
@@ -175,7 +184,6 @@ class AbstractDataManager(ABC):
             # Create tmp tables
             self.circular_batch_tables = {0: DataFrame(_local, columns=columns)}
 
-            # print(self.circular_batch_tables[self.batch_currently_selected_table])
             del _local, columns
             logging.info(f"""
             NO BATCH MODE: TMP tables for batching has been created. Number of tables = ({len(self.circular_batch_tables)}),
