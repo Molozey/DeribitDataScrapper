@@ -67,9 +67,6 @@ class AbstractSubscription(ABC):
 class OrderBookSubscriptionCONSTANT(AbstractSubscription):
     tables_names = ["TABLE_DEPTH_{}"]
 
-    # TODO:
-    # tables_names = ["order_book_content", "script_snapshot_id", "script_snapshot_id"]
-
     def __init__(self, scrapper: scrapper_typing, order_book_depth: int):
         self.depth: int = order_book_depth
         self.tables_names = [f"TABLE_DEPTH_{self.depth}"]

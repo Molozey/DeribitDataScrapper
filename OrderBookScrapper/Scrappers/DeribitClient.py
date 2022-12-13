@@ -205,15 +205,14 @@ class DeribitClient(Thread, WebSocketApp):
         response = json.loads(message)
         self._process_callback(response)
 
-        # TODO: Create executor function to make code more readable.
         if 'method' in response:
             # Answer to heartbeat request
             if response['method'] == 'heartbeat':
                 # Send test message to approve that connection is still alive
                 self.send_new_request(MSG_LIST.test_message())
                 return
-            # TODO
 
+            # Process answer for current subscription type
             self.subscription_type.process_response_from_server(response=response)
 
     def _process_callback(self, response):
