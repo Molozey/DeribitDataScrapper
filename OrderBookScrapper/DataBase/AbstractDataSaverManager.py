@@ -63,6 +63,7 @@ class AbstractDataManager(ABC):
 
     batch_mutable_pointer: Optional[int] = None
     batch_number_of_tables: Optional[int] = None
+    batch_size_of_table: Optional[int] = None
     batch_currently_selected_table: Optional[int] = None
     async_loop = asyncio.new_event_loop()
 
@@ -121,38 +122,21 @@ class AbstractDataManager(ABC):
     async def _create_not_exist_database(self):
         pass
 
-    # @abstractmethod
-    # def _add_order_book_content_limited_depth(self, bids, asks, change_id, timestamp, instrument_name):
-    #     pass
-    #
-    # @abstractmethod
-    # def _add_instrument_change_order_book_unlimited_depth(self, request_change_id: int, request_previous_change_id: int,
-    #                                                       change_timestamp: int,
-    #                                                       bids_list: list[list[str, float, float]],
-    #                                                       asks_list: list[list[str, float, float]]
-    #                                                       ):
-    #     pass
-    #
-    # @abstractmethod
-    # def _add_instrument_init_snapshot(self, instrument_name: str,
-    #                                   start_instrument_scrap_time: int,
-    #                                   request_change_id: int,
-    #                                   bids_list,
-    #                                   asks_list: list[list[str, float, float]]
-    #                                   ):
-    #     pass
-
     def add_data(self, update_line: ndarray):
         assert update_line.shape[0] == len(self.subscription_type.create_columns_list())
         self.circular_batch_tables[self.batch_currently_selected_table].iloc[self.batch_mutable_pointer] = update_line
         self.batch_mutable_pointer += 1
-        if self.batch_mutable_pointer >= self.cfg["record_system"]["size_of_tmp_batch_table"]:
+        if self.batch_mutable_pointer >= self.batch_size_of_table:
+            print("Transfer data\n", self.circular_batch_tables[self.batch_currently_selected_table], "\n")
+            print(f"Pointer In Table: ({self.batch_mutable_pointer}) | Pointer Out Table: ({self.batch_currently_selected_table})")
+            print("=====" * 20)
             self.batch_mutable_pointer = 0
-            self.record_to_database_complex(record_dataframe=
-                                            self.circular_batch_tables[self.batch_currently_selected_table])
+            self._place_data_to_database(record_dataframe=
+                                         self.circular_batch_tables[self.batch_currently_selected_table])
             self.batch_currently_selected_table += 1
-            if self.batch_currently_selected_table >= self.cfg["record_system"]["number_of_tmp_tables"]:
+            if self.batch_currently_selected_table >= self.batch_number_of_tables:
                 self.batch_currently_selected_table = 0
+
 
     def _create_tmp_batch_tables(self):
         """
@@ -165,6 +149,9 @@ class AbstractDataManager(ABC):
 
         # Create columns for tmp tables
         if self.cfg["record_system"]["use_batches_to_record"]:
+            self.batch_number_of_tables = self.cfg["record_system"]["number_of_tmp_tables"]
+            self.batch_size_of_table = self.cfg["record_system"]["size_of_tmp_batch_table"]
+
             _local = np.zeros(shape=(self.cfg["record_system"]["size_of_tmp_batch_table"], self.depth_size * 4 + 3))
             _local[:] = np.NaN
             # Create tmp tables
@@ -181,6 +168,8 @@ class AbstractDataManager(ABC):
             """)
         # No batch system enabled
         else:
+            self.batch_number_of_tables = 1
+            self.batch_size_of_table = 1
             _local = np.zeros(shape=(1, self.depth_size * 4 + 3))
             _local[:] = np.NaN
             # Create tmp tables
@@ -194,15 +183,11 @@ class AbstractDataManager(ABC):
             """)
 
     @abstractmethod
-    def _record_to_database_limited_depth_mode(self, record_dataframe: DataFrame):
+    def _place_data_to_database(self, record_dataframe: DataFrame) -> int:
+        """
+        Implement this for every unique method for placing data
+        :param record_dataframe:
+        :return:
+        """
         pass
 
-    @abstractmethod
-    def _record_to_database_unlimited_depth_mode(self, record_dataframe: DataFrame):
-        pass
-
-    def record_to_database_complex(self, record_dataframe: DataFrame):
-        if self.depth_size != 0:
-            self._record_to_database_limited_depth_mode(record_dataframe=record_dataframe)
-        else:
-            self._record_to_database_unlimited_depth_mode(record_dataframe=record_dataframe)

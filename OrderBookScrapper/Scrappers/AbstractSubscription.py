@@ -4,6 +4,7 @@ from functools import partial
 from typing import List, TYPE_CHECKING
 import numpy as np
 from numpy import ndarray
+from pandas import DataFrame
 
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsLimited import \
     REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
@@ -46,22 +47,35 @@ class AbstractSubscription(ABC):
         pass
 
     @abstractmethod
-    def _process_update_information_line(self, *args) -> int:
-        pass
-
-    @abstractmethod
     def _process_response(self, response: dict):
         pass
 
     def process_response_from_server(self, response: dict):
         return self._process_response(response=response)
 
-    def process_update_information_line(self, *args) -> int:
-        return self._process_update_information_line()
-
     @abstractmethod
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         pass
+
+    @abstractmethod
+    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str):
+        """
+        Need to be implemented. Creates request for database daemon (uses it methods | convert data | e.t.c).
+        For example for unlimited depth transfer
+        :param record_dataframe:
+        :param tag_of_data: Can be used for example for logical if for unlimited depth
+        :return:
+        """
+        pass
+
+    def record_to_database(self, record_dataframe: DataFrame, tag_of_data: str = None):
+        """
+        Interface for creation pipeline for recording to database. for example preprocessing or validation data.
+        :param record_dataframe:
+        :param tag_of_data:
+        :return:
+        """
+        self._record_to_daemon_database_pipeline(record_dataframe=record_dataframe, tag_of_data=tag_of_data)
 
 
 class OrderBookSubscriptionCONSTANT(AbstractSubscription):
@@ -91,9 +105,6 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             columns = flatten(columns)
             return columns
 
-    def _process_update_information_line(self, *args) -> list:
-        pass
-
     def _process_response(self, response: dict):
         # SUBSCRIPTION processing
         if response['method'] == "subscription":
@@ -105,34 +116,10 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
                         update_line=self.extract_data_from_response(input_response=response)
                     )
                 return
-            #
-            # # INITIAL SNAPSHOT processing. For unlimited book depth
-            # if response['params']['data']['type'] == 'snapshot':
-            #     if self.scrapper.database:
-            #         self.scrapper.database.add_instrument_init_snapshot(
-            #             instrument_name=response['params']['data']['instrument_name'],
-            #             start_instrument_scrap_time=response['params']['data']['timestamp'],
-            #             request_change_id=response['params']['data']['change_id'],
-            #             bids_list=response['params']['data']['bids'],
-            #             asks_list=response['params']['data']['asks'],
-            #         )
-            #         return
-            # # CHANGE ORDER BOOK processing. For unlimited book depth
-            # if response['params']['data']['type'] == 'change':
-            #     if self.scrapper.database:
-            #         self.scrapper.database.add_instrument_change_order_book_unlimited_depth(
-            #             request_change_id=response['params']['data']['change_id'],
-            #             request_previous_change_id=response['params']['data']['prev_change_id'],
-            #             change_timestamp=response['params']['data']['timestamp'],
-            #             bids_list=response['params']['data']['bids'],
-            #             asks_list=response['params']['data']['asks'],
-            #         )
-            #         return
 
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         _change_id = input_response['params']['data']['change_id']
         _timestamp = input_response['params']['data']['timestamp']
-        print(self.scrapper.database.instrument_name_instrument_id_map.items())
         _instrument_name = self.scrapper.database.instrument_name_instrument_id_map[input_response['params']['data']['instrument_name']]
         _bids = sorted(input_response['params']['data']['bids'], key=lambda x: x[0], reverse=True)
         _asks = sorted(input_response['params']['data']['asks'], key=lambda x: x[0], reverse=False)
@@ -151,6 +138,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         _bids_insert_array.extend(_asks_insert_array)
         _update_line = [_timestamp, _instrument_name]
         _update_line.extend(_bids_insert_array)
+        _update_line.insert(0, 0)
         _update_line = np.array(flatten(_update_line))
         del _bids, _asks, _bids_insert_array, _asks_insert_array, _pointer
         return _update_line
@@ -192,6 +180,9 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
                                                         group=self.scrapper.configuration["orderBookScrapper"][
                                                             "group_in_limited_order_book"])
 
+    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str):
+        return record_dataframe
+
 
 class NullSub(AbstractSubscription):
 
@@ -213,12 +204,13 @@ class NullSub(AbstractSubscription):
     def create_subscription_request(self) -> str:
         pass
 
-    def _process_update_information_line(self, *args) -> list:
-        pass
-
     def _process_response(self, response: dict):
         pass
 
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         pass
+
+    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str):
+        pass
+
 
