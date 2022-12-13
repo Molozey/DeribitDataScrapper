@@ -20,7 +20,7 @@ record_system:
 
 orderBookScrapper:
     scrapper_body: OrderBook
-    depth: 2
+    depth: 3
     test_net: False
     currency: BTC
     enable_traceback: False
@@ -33,7 +33,7 @@ orderBookScrapper:
 
     select_all_order_book: True
 
-    database_daemon: hdf5
+    database_daemon: mysql
 
     add_extra_instruments: ["BTC-PERPETUAL", "ETH-PERPETUAL"]
 

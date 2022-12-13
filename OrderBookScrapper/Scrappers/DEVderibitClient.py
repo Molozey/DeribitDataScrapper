@@ -295,7 +295,15 @@ if __name__ == '__main__':
     instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
 
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml")
-    deribitWorker.start()
+    js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989478, 'instrument_name': 'BTC-PERPETUAL', 'change_id': 52016142177, 'bids': [[17132.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
+    js = js.replace("'", "\"")
+    js = json.loads(js)
+    print(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
+    print("""[1.67079699e+12 0.00000000e+00 1.71310000e+04 2.00000000e+04
+    1.71315000e+04 6.40200000e+04 1.71320000e+04 3.55300000e+04
+    1.71325000e+04 5.22500000e+04 1.71330000e+04 1.29500000e+04
+    1.71335000e+04 2.78000000e+03]""")
+    # deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(
     time.sleep(1)

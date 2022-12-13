@@ -2,6 +2,8 @@ import logging
 from abc import ABC, abstractmethod
 from functools import partial
 from typing import List, TYPE_CHECKING
+import numpy as np
+from numpy import ndarray
 
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsLimited import \
     REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
@@ -9,6 +11,7 @@ from OrderBookScrapper.Utils import MSG_LIST
 
 if TYPE_CHECKING:
     from OrderBookScrapper.Scrappers.DeribitClient import DeribitClient
+
     scrapper_typing = DeribitClient
 else:
     scrapper_typing = object
@@ -43,7 +46,7 @@ class AbstractSubscription(ABC):
         pass
 
     @abstractmethod
-    def _process_update_information_line(self, *args) -> list:
+    def _process_update_information_line(self, *args) -> int:
         pass
 
     @abstractmethod
@@ -53,8 +56,12 @@ class AbstractSubscription(ABC):
     def process_response_from_server(self, response: dict):
         return self._process_response(response=response)
 
-    def process_update_information_line(self, *args) -> list:
+    def process_update_information_line(self, *args) -> int:
         return self._process_update_information_line()
+
+    @abstractmethod
+    def extract_data_from_response(self, input_response: dict) -> ndarray:
+        pass
 
 
 class OrderBookSubscriptionCONSTANT(AbstractSubscription):
@@ -97,12 +104,8 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             # ORDER BOOK processing. For constant book depth
             if 'change' and 'type' not in response['params']['data']:
                 if self.scrapper.database:
-                    self.scrapper.database.add_order_book_content_limited_depth(
-                        change_id=response['params']['data']['change_id'],
-                        timestamp=response['params']['data']['timestamp'],
-                        bids=response['params']['data']['bids'],
-                        asks=response['params']['data']['asks'],
-                        instrument_name=response['params']['data']['instrument_name']
+                    self.scrapper.database.add_data(
+                        update_line=self.extract_data_from_response(input_response=response)
                     )
                 return
             #
@@ -129,6 +132,32 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             #         )
             #         return
 
+    def extract_data_from_response(self, input_response: dict) -> ndarray:
+        _change_id = input_response['params']['data']['change_id']
+        _timestamp = input_response['params']['data']['timestamp']
+        print(self.scrapper.database.instrument_name_instrument_id_map.items())
+        _instrument_name = self.scrapper.database.instrument_name_instrument_id_map[input_response['params']['data']['instrument_name']]
+        _bids = sorted(input_response['params']['data']['bids'], key=lambda x: x[0], reverse=True)
+        _asks = sorted(input_response['params']['data']['asks'], key=lambda x: x[0], reverse=False)
+        _bids_insert_array = [[-1.0, -1.0] for _i in range(self.scrapper.database.depth_size)]
+        _asks_insert_array = [[-1.0, -1.0] for _i in range(self.scrapper.database.depth_size)]
+
+        _pointer = self.scrapper.database.depth_size - 1
+        for i, bid in enumerate(_bids[:self.scrapper.database.depth_size]):
+            _bids_insert_array[_pointer] = bid
+            _pointer -= 1
+
+        _pointer = self.scrapper.database.depth_size - 1
+        for i, ask in enumerate(_asks[:self.scrapper.database.depth_size]):
+            _asks_insert_array[i] = ask
+            _pointer -= 1
+        _bids_insert_array.extend(_asks_insert_array)
+        _update_line = [_timestamp, _instrument_name]
+        _update_line.extend(_bids_insert_array)
+        _update_line = np.array(flatten(_update_line))
+        del _bids, _asks, _bids_insert_array, _asks_insert_array, _pointer
+        return _update_line
+
     def make_new_subscribe_constant_depth_book(self, instrument_name: str,
                                                type_of_data="book",
                                                interval="100ms",
@@ -154,15 +183,18 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         # Send all subscriptions
         for _instrument_name in self.scrapper.instruments_list:
             self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-                                                             depth=self.scrapper.configuration["orderBookScrapper"]["depth"],
-                                                             group=self.scrapper.configuration["orderBookScrapper"]["group_in_limited_order_book"])
+                                                        depth=self.scrapper.configuration["orderBookScrapper"]["depth"],
+                                                        group=self.scrapper.configuration["orderBookScrapper"][
+                                                            "group_in_limited_order_book"])
 
         # Extra like BTC-PERPETUAL
         for _instrument_name in self.scrapper.configuration["orderBookScrapper"]["add_extra_instruments"]:
             print("Extra:", _instrument_name)
             self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,
-                                                                 depth=self.scrapper.configuration["orderBookScrapper"]["depth"],
-                                                                 group=self.scrapper.configuration["orderBookScrapper"]["group_in_limited_order_book"])
+                                                        depth=self.scrapper.configuration["orderBookScrapper"]["depth"],
+                                                        group=self.scrapper.configuration["orderBookScrapper"][
+                                                            "group_in_limited_order_book"])
+
 
 class NullSub(AbstractSubscription):
 
@@ -170,7 +202,6 @@ class NullSub(AbstractSubscription):
         self.tables_names = ["TEST_TABLE_NULL"]
         self.tables_names_creation = list(map(partial(REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT,
                                                       depth_size=2), self.tables_names))
-
 
     def create_columns_list(self) -> list[str]:
         columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
@@ -190,3 +221,7 @@ class NullSub(AbstractSubscription):
 
     def _process_response(self, response: dict):
         pass
+
+    def extract_data_from_response(self, input_response: dict) -> ndarray:
+        pass
+
