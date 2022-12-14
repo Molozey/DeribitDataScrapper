@@ -1,5 +1,4 @@
-import asyncio
-import sys
+from tqdm import tqdm
 import time
 import warnings
 from typing import Optional, Union, Type
@@ -298,13 +297,15 @@ if __name__ == '__main__':
     js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989478, 'instrument_name': 'BTC-PERPETUAL', 'change_id': 52016142177, 'bids': [[17132.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
     js = js.replace("'", "\"")
     js = json.loads(js)
-    deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
+    # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
     js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989666, 'instrument_name': 'ETH-PERPETUAL', 'change_id': 52016142666, 'bids': [[17666.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
     js = js.replace("'", "\"")
     js = json.loads(js)
-    deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-    deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-    deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
+    for _ in tqdm(range(10_000)):
+        deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
+        deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
+        deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
+        deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
     # deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(

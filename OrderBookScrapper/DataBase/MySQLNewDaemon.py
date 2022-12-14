@@ -8,6 +8,7 @@ from OrderBookScrapper.DataBase.AbstractDataSaverManager import AbstractDataMana
 import logging
 import mysql.connector as connector
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsUnlimited import *
+from OrderBookScrapper.DataBase.mysqlRecording.postDataTemplateLimited import *
 from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription
 
 # Block with developing module | START
@@ -57,7 +58,7 @@ class MySqlDaemon(AbstractDataManager):
                 logging.error("Connection to database raise error: \n {error}".format(error=e))
                 await asyncio.sleep(self.cfg["mysql"]["reconnect_wait_time"])
 
-    async def _mysql_post_execution_handler(self, query) -> int:
+    async def _mysql_post_execution_handler(self, query, need_to_commit: bool = False) -> int:
         """
         Interface to execute POST request to MySQL database
         :param query:
@@ -71,6 +72,8 @@ class MySqlDaemon(AbstractDataManager):
                 raise ConnectionError("Cannot execute MySQL query. Reached maximum attempts")
             try:
                 self.database_cursor.execute(query)
+                if need_to_commit:
+                    self.connection.commit()
                 return 1
             except connector.Error as e:
                 flag += 1
@@ -173,17 +176,22 @@ class MySqlDaemon(AbstractDataManager):
         else:
             raise NotImplementedError
 
-    def __record_to_database_limited_depth_mode(self, record_dataframe: DataFrame):
-        print("Called __record")
+    # TODO: make it better
+    def __database_one_table_record(self, record_dataframe: DataFrame):
         data = self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="LIMITED")
+        query = INSERT_MULTIPLE_DATA_HEADER_TEMPLATE.format(self.subscription_type.tables_names[0])
+        # -1 for delete last coma
+        query += INSERT_MULTIPLE_DATA_VALUES_SYMBOL_TEMPLATE(dataframe=data)
+        self.async_loop.run_until_complete(
+            self.async_loop.create_task(self._mysql_post_execution_handler(query=query, need_to_commit=True)))
 
-    def __record_to_database_unlimited_depth_mode(self, record_dataframe: DataFrame):
+    def __database_several_tables_record(self, record_dataframe: DataFrame):
         # TODO: implement
         # self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="UNLIMITED")
         raise NotImplementedError
 
     def _place_data_to_database(self, record_dataframe: DataFrame):
         if self.depth_size == 0:
-            self.__record_to_database_unlimited_depth_mode(record_dataframe=record_dataframe)
+            self.__database_several_tables_record(record_dataframe=record_dataframe)
         elif (type(self.depth_size) == int) and (self.depth_size > 0):
-            self.__record_to_database_limited_depth_mode(record_dataframe=record_dataframe)
+            self.__database_one_table_record(record_dataframe=record_dataframe)

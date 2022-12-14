@@ -12,8 +12,8 @@ hdf5:
 
 record_system:
     use_batches_to_record: True
-    number_of_tmp_tables: 3
-    size_of_tmp_batch_table: 1
+    number_of_tmp_tables: 2
+    size_of_tmp_batch_table: 400
     instrumentNameToIdMapFile: "InstrumentNameToIdMap.json"
 
     clean_database_at_startup: True

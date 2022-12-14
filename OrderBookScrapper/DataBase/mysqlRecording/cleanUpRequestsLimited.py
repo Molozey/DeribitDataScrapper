@@ -2,7 +2,7 @@
 def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: int):
     HEADER = "create table {}".format(table_name)
     REQUIRED_FIELDS = """(
-    CHANGE_ID bigint not null,
+    CHANGE_ID bigint not null auto_increment primary key,
     NAME_INSTRUMENT blob                           not null,
     TIMESTAMP_VALUE bigint                           not null,
     """
@@ -13,13 +13,11 @@ def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: in
 
     ADDITIONAL_FIELDS_ASKS = """
     ASK_{}_PRICE float not null,
-    ASK_{}_AMOUNT float not null, 
-    """
+    ASK_{}_AMOUNT float not null,"""
 
     LOWER_HEADER = """
-    PRIMARY KEY(CHANGE_ID)
     )
-    comment 'Таблица содержащая ордербук на момент запуска скрипта'
+    comment 'Test Table';
     """
 
     REQUEST = HEADER + REQUIRED_FIELDS
@@ -29,6 +27,7 @@ def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: in
     for pointer in range(depth_size):
         REQUEST += ADDITIONAL_FIELDS_ASKS.format(pointer, pointer)
 
+    REQUEST = REQUEST[:-1]
     REQUEST += LOWER_HEADER
 
     return REQUEST

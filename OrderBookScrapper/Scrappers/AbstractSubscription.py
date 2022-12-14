@@ -147,7 +147,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             _asks_insert_array[i] = ask
             _pointer -= 1
         _bids_insert_array.extend(_asks_insert_array)
-        _update_line = [_timestamp, _instrument_name]
+        _update_line = [_instrument_name, _timestamp]
         _update_line.extend(_bids_insert_array)
         _update_line.insert(0, 0)
         _update_line = np.array(flatten(_update_line))
@@ -192,6 +192,8 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
                                                             "group_in_limited_order_book"])
 
     def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str) -> DataFrame:
+        if 'CHANGE_ID' in record_dataframe.columns:
+            return record_dataframe.iloc[:, 1:]
         return record_dataframe
 
 
