@@ -49,7 +49,9 @@ def download_data_for_SABR(currency: Currency, save_information=False):
 
     # Download Option prices
     strikes_bars = list()
+    strikes_values = list()
     for select in selected:
+        print(select)
         try:
             df = deribit_old.get_instrument_last_prices(select, 10_00, number_of_requests=1,
                                                         date_of_start_loading_data=CURRENT_TIME)
@@ -58,6 +60,7 @@ def download_data_for_SABR(currency: Currency, save_information=False):
             continue
         df.index = pd.to_datetime(df.timestamp * 10 ** 6)
         strikes_bars.append(DeribitConnectionOld.create_bars(df))
+        strikes_values.append(select)
 
     # TODO: Change / to \\ on Windows System
     if SAVE_INFO:
@@ -68,7 +71,7 @@ def download_data_for_SABR(currency: Currency, save_information=False):
         underlyingBars.to_csv(f"{PATH}/underlyingBars.csv")
 
         for i, _ in enumerate(strikes_bars):
-            _.to_csv(f"{PATH}/strikeBars_{selected[i].split('-')[2]}.csv")
+            _.to_csv(f"{PATH}/strikeBars_{strikes_values[i].split('-')[2]}.csv")
 
 
 
@@ -77,7 +80,7 @@ def download_data_for_SABR(currency: Currency, save_information=False):
 
 if __name__ == "__main__":
     SAVE_INFO = True
-    DELETE_OLD = True
+    DELETE_OLD = False
     SAVE_STORAGE_NAME = "saveStorage"
     if SAVE_INFO:
         import os

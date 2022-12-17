@@ -15,6 +15,8 @@ import AvailableInstrumentType
 # from AvailableRequests import test_message
 global URL_TO_SCRAP
 global TEST_NET
+
+
 TEST_NET = False
 if TEST_NET:
     URL_TO_SCRAP = 'wss://test.deribit.com/ws/api/v2'

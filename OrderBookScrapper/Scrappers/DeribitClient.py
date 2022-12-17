@@ -4,8 +4,7 @@ import time
 import warnings
 from typing import Optional, Union, Type
 
-# from OrderBookScrapper.DataBase.MySQLDaemon import MySqlDaemon
-from OrderBookScrapper.DataBase.HDF5Daemon import HDF5Daemon
+from OrderBookScrapper.DataBase.HDF5NewDaemon import HDF5Daemon
 
 from OrderBookScrapper.DataBase.MySQLNewDaemon import MySqlDaemon
 from OrderBookScrapper.Utils import MSG_LIST
@@ -164,11 +163,11 @@ class DeribitClient(Thread, WebSocketApp):
 
                 case "hdf5":
                     if type(constant_depth_order_book) == int:
-                        self.database = HDF5Daemon(constant_depth_mode=constant_depth_order_book,
-                                                   clean_tables=clean_database)
+                        self.database = HDF5Daemon(configuration_path=self.configuration_path,
+                                                   subscription_type=self.subscription_type)
                     elif constant_depth_order_book is False:
-                        self.database = HDF5Daemon(constant_depth_mode=constant_depth_order_book,
-                                                   clean_tables=clean_database)
+                        self.database = HDF5Daemon(configuration_path=self.configuration_path,
+                                                   subscription_type=self.subscription_type)
                     else:
                         raise ValueError('Unavailable value of depth order book mode')
                     time.sleep(1)
