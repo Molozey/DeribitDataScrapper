@@ -34,18 +34,19 @@ def preprocess_dataframe(path: str, _UNDR) -> pd.DataFrame:
 
 if __name__ == '__main__':
 
-    UNDERLYING = pd.read_csv('saveStorage/16DEC22/underlyingBars.csv').copy()
+    UNDERLYING = pd.read_csv('saveStorage/23DEC22/underlyingBars.csv').copy()
     UNDERLYING['minutesTime'] = pd.to_datetime(UNDERLYING['minutesTime'])
     UNDERLYING.index = UNDERLYING["minutesTime"]
     UNDERLYING = UNDERLYING.resample('1T').first().fillna(method='ffill')
     UNDERLYING["minutesTime"] = UNDERLYING.index
 
-    EXPIRATION_DATE = pd.Timestamp(year=2022, month=12, day=17)
+    EXPIRATION_DATE = pd.Timestamp(year=2022, month=12, day=23)
 
     # '2022-12-02 08:04:00'
     print(UNDERLYING)
     list_of_dataframes = []
-    for path in glob.glob("saveStorage/16DEC22/*"):
+    for path in glob.glob("saveStorage/23DEC22/*"):
+        print(path)
         if "underlyingBars.csv" not in path:
             list_of_dataframes.append(preprocess_dataframe(path, UNDERLYING))
 
