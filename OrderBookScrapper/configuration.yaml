@@ -8,7 +8,7 @@ mysql:
     reconnect_wait_time: 1
 
 hdf5:
-    hdf5_database_file: "HDF_storage.hdf5"
+    hdf5_database_file: "HDF_storage.h5"
 
 record_system:
     use_batches_to_record: True
