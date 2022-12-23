@@ -127,7 +127,7 @@ class DeribitClient(Thread, WebSocketApp):
 
         clean_database = self.configuration['orderBookScrapper']["clean_database"]
         constant_depth_order_book = self.configuration['orderBookScrapper']["depth"]
-        instruments_listed = instruments_list
+        instruments_listed = instruments_listed
 
         Thread.__init__(self)
         self.subscription_type = subscription_map(scrapper=self, conf=self.configuration)
@@ -297,9 +297,9 @@ if __name__ == '__main__':
             raise ValueError("Unknown currency")
 
 
-    instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
+    _instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
 
-    deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml")
+    deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml", instruments_listed=_instruments_list)
     deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(

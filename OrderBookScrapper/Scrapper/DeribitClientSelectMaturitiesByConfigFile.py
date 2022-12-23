@@ -71,7 +71,8 @@ def scrap_available_instruments(currency: Currency, cfg):
             raise FileNotFoundError("ERROR!")
 
         total_instrument_list: list = []
-        print('\nYou select:', maturities_selected)
+        print(f'\nSelect maturities by configuration file: ({cfg["maturities_configuration_path"]})',
+              maturities_selected)
         for maturity in maturities_selected:
             selected = list(map(lambda x: x["instrument_name"],
                                 list(filter(lambda x: (maturity in x["instrument_name"]) and (
@@ -111,7 +112,7 @@ if __name__ == '__main__':
 
     instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
 
-    deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml")
+    deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml", instruments_listed=instruments_list)
     deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(
