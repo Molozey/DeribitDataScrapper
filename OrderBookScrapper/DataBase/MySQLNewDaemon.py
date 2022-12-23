@@ -2,14 +2,12 @@ import asyncio
 from datetime import datetime
 from typing import Optional
 
-from pandas import DataFrame
-
 from OrderBookScrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
 import logging
 import mysql.connector as connector
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsUnlimited import *
 from OrderBookScrapper.DataBase.mysqlRecording.postDataTemplateLimited import *
-from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription
+from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription
 
 # Block with developing module | START
 import yaml

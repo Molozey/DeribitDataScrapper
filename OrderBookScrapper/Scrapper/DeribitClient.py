@@ -1,7 +1,6 @@
-from tqdm import tqdm
 import time
 import warnings
-from typing import Optional, Union, Type
+from typing import Optional, Union
 
 from OrderBookScrapper.DataBase.HDF5NewDaemon import HDF5Daemon
 
@@ -9,7 +8,8 @@ from OrderBookScrapper.DataBase.MySQLNewDaemon import MySqlDaemon
 from OrderBookScrapper.Utils import MSG_LIST
 from OrderBookScrapper.Utils.AvailableCurrencies import Currency
 from OrderBookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription, OrderBookSubscriptionCONSTANT
+from OrderBookScrapper.Subsciption.OrderBookSubscriptionLimitedDepth import AbstractSubscription, \
+    OrderBookSubscriptionCONSTANT
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
@@ -17,7 +17,15 @@ from threading import Thread
 from datetime import datetime
 import logging
 import json
+
+# Block with developing module | START
 import yaml
+import sys
+
+with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
+del _file
+# Block with developing module | END
 
 
 def scrap_available_instruments(currency: Currency, cfg):
@@ -119,7 +127,7 @@ class DeribitClient(Thread, WebSocketApp):
 
         clean_database = self.configuration['orderBookScrapper']["clean_database"]
         constant_depth_order_book = self.configuration['orderBookScrapper']["depth"]
-        instruments_listed = instruments_list
+        instruments_listed = instruments_listed
 
         Thread.__init__(self)
         self.subscription_type = subscription_map(scrapper=self, conf=self.configuration)
@@ -203,15 +211,14 @@ class DeribitClient(Thread, WebSocketApp):
         response = json.loads(message)
         self._process_callback(response)
 
-        # TODO: Create executor function to make code more readable.
         if 'method' in response:
             # Answer to heartbeat request
             if response['method'] == 'heartbeat':
                 # Send test message to approve that connection is still alive
                 self.send_new_request(MSG_LIST.test_message())
                 return
-            # TODO
 
+            # Process answer for current subscription type
             self.subscription_type.process_response_from_server(response=response)
 
     def _process_callback(self, response):
@@ -290,23 +297,10 @@ if __name__ == '__main__':
             raise ValueError("Unknown currency")
 
 
-    instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
+    _instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
 
-    deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml")
-    js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989478, 'instrument_name': 'BTC-PERPETUAL', 'change_id': 52016142177, 'bids': [[17132.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
-    js = js.replace("'", "\"")
-    js = json.loads(js)
-    # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-    js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989666, 'instrument_name': 'ETH-PERPETUAL', 'change_id': 52016142666, 'bids': [[17666.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
-    js = js.replace("'", "\"")
-    js = json.loads(js)
-    for _ in tqdm(range(1_00)):
-        js['params']['data']['timestamp'] = _
-        deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-        # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-        # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-        # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-    # deribitWorker.start()
+    deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml", instruments_listed=_instruments_list)
+    deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(
     time.sleep(1)
