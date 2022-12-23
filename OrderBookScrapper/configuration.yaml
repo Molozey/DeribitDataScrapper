@@ -36,5 +36,7 @@ orderBookScrapper:
     database_daemon: hdf5
 
     add_extra_instruments: ["BTC-PERPETUAL", "ETH-PERPETUAL"]
-
+    # Need to be true if you need to select maturities by configuration file.
+    use_configuration_to_select_maturities: True
+    maturities_configuration_path: "test_DEC23_configuration.yaml"
 

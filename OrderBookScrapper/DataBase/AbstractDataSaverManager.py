@@ -6,10 +6,9 @@ from pandas import DataFrame
 import os
 import logging
 import json
-import yaml
 import numpy as np
 
-from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription
+from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription
 
 # Block with developing module | START
 import yaml

@@ -1,7 +1,7 @@
 from tqdm import tqdm
 import time
 import warnings
-from typing import Optional, Union, Type
+from typing import Optional, Union
 
 from OrderBookScrapper.DataBase.HDF5NewDaemon import HDF5Daemon
 
@@ -9,7 +9,7 @@ from OrderBookScrapper.DataBase.MySQLNewDaemon import MySqlDaemon
 from OrderBookScrapper.Utils import MSG_LIST
 from OrderBookScrapper.Utils.AvailableCurrencies import Currency
 from OrderBookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription, OrderBookSubscriptionCONSTANT
+from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription, OrderBookSubscriptionCONSTANT
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread

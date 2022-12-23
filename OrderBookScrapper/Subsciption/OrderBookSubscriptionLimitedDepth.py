@@ -1,92 +1,21 @@
-import logging
-from abc import ABC, abstractmethod
-from functools import partial
-from typing import List, TYPE_CHECKING
-import numpy as np
-from numpy import ndarray
-from pandas import DataFrame
-
+from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten
+from OrderBookScrapper.Utils import MSG_LIST
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsLimited import \
     REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
-from OrderBookScrapper.Utils import MSG_LIST
+
+from numpy import ndarray
+from functools import partial
+from pandas import DataFrame
+from typing import List, TYPE_CHECKING
+import logging
+import numpy as np
 
 if TYPE_CHECKING:
-    from OrderBookScrapper.Scrappers.DeribitClient import DeribitClient
+    from OrderBookScrapper.Scrapper.DeribitClient import DeribitClient
 
     scrapper_typing = DeribitClient
 else:
     scrapper_typing = object
-
-# Block with developing module | START
-import yaml
-import sys
-
-with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
-    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
-del _file
-# Block with developing module | END
-
-
-def flatten(list_of_lists):
-    if len(list_of_lists) == 0:
-        return list_of_lists
-    if isinstance(list_of_lists[0], list):
-        return flatten(list_of_lists[0]) + flatten(list_of_lists[1:])
-    return list_of_lists[:1] + flatten(list_of_lists[1:])
-
-
-class AbstractSubscription(ABC):
-    tables_names: List[str]
-    tables_names_creation: List[str]
-
-    def __init__(self, scrapper: scrapper_typing):
-        self.scrapper = scrapper
-        self._place_here_tables_names_and_creation_requests()
-
-    @abstractmethod
-    def _place_here_tables_names_and_creation_requests(self):
-        pass
-
-    @abstractmethod
-    def create_columns_list(self) -> list[str]:
-        pass
-
-    @abstractmethod
-    def create_subscription_request(self) -> str:
-        pass
-
-    @abstractmethod
-    def _process_response(self, response: dict):
-        pass
-
-    def process_response_from_server(self, response: dict):
-        return self._process_response(response=response)
-
-    @abstractmethod
-    def extract_data_from_response(self, input_response: dict) -> ndarray:
-        pass
-
-    @abstractmethod
-    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str) -> DataFrame:
-        """
-        Need to be implemented. Creates request for database daemon (uses it methods | convert data | e.t.c).
-        For example for unlimited depth transfer
-        :param record_dataframe:
-        :param tag_of_data: Can be used for example for logical if for unlimited depth
-        :return:
-        """
-        pass
-
-    def record_to_database(self, record_dataframe: DataFrame, tag_of_data: str = None) -> DataFrame:
-        """
-        Interface for creation pipeline for recording to database. for example preprocessing or validation data.
-        Also make a copy of data to solve problems that can be caused with mutations.
-        :param record_dataframe:
-        :param tag_of_data:
-        :return:
-        """
-        return self._record_to_daemon_database_pipeline(record_dataframe=record_dataframe.copy(),
-                                                        tag_of_data=tag_of_data)
 
 
 class OrderBookSubscriptionCONSTANT(AbstractSubscription):
@@ -131,7 +60,8 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         _change_id = input_response['params']['data']['change_id']
         _timestamp = input_response['params']['data']['timestamp']
-        _instrument_name = self.scrapper.database.instrument_name_instrument_id_map[input_response['params']['data']['instrument_name']]
+        _instrument_name = self.scrapper.database.instrument_name_instrument_id_map[
+            input_response['params']['data']['instrument_name']]
         _bids = sorted(input_response['params']['data']['bids'], key=lambda x: x[0], reverse=True)
         _asks = sorted(input_response['params']['data']['asks'], key=lambda x: x[0], reverse=False)
         _bids_insert_array = [[-1.0, -1.0] for _i in range(self.scrapper.database.depth_size)]
@@ -195,35 +125,3 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         if 'CHANGE_ID' in record_dataframe.columns:
             return record_dataframe.iloc[:, 1:]
         return record_dataframe
-
-
-class NullSub(AbstractSubscription):
-
-    def _place_here_tables_names_and_creation_requests(self):
-        self.tables_names = ["TEST_TABLE_NULL"]
-        self.tables_names_creation = list(map(partial(REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT,
-                                                      depth_size=2), self.tables_names))
-
-    def create_columns_list(self) -> list[str]:
-        columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
-        columns.extend(map(lambda x: [f"BID_{x}_PRICE", f"BID_{x}_AMOUNT"], range(2)))
-        columns.extend(map(lambda x: [f"ASK_{x}_PRICE", f"ASK_{x}_AMOUNT"], range(2)))
-
-        columns = flatten(columns)
-        columns[0] = "TEST_UNIT_TABLE"
-        columns[1] = "UNKNOWN_TABLE"
-        return columns
-
-    def create_subscription_request(self) -> str:
-        pass
-
-    def _process_response(self, response: dict):
-        pass
-
-    def extract_data_from_response(self, input_response: dict) -> ndarray:
-        pass
-
-    def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str) -> DataFrame:
-        pass
-
-

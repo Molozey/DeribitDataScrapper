@@ -1,8 +1,6 @@
-import asyncio
-import sys
 import time
 import warnings
-from typing import Optional, Union, Type
+from typing import Optional, Union
 
 from OrderBookScrapper.DataBase.HDF5NewDaemon import HDF5Daemon
 
@@ -10,7 +8,8 @@ from OrderBookScrapper.DataBase.MySQLNewDaemon import MySqlDaemon
 from OrderBookScrapper.Utils import MSG_LIST
 from OrderBookScrapper.Utils.AvailableCurrencies import Currency
 from OrderBookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from OrderBookScrapper.Scrappers.AbstractSubscription import AbstractSubscription, OrderBookSubscriptionCONSTANT
+from OrderBookScrapper.Subsciption.OrderBookSubscriptionLimitedDepth import AbstractSubscription, \
+    OrderBookSubscriptionCONSTANT
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
@@ -18,7 +17,6 @@ from threading import Thread
 from datetime import datetime
 import logging
 import json
-import yaml
 
 # Block with developing module | START
 import yaml
