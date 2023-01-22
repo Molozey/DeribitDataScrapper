@@ -134,7 +134,6 @@ class DeribitClient(Thread, WebSocketApp):
         self.loop = loopB
         asyncio.set_event_loop(self.loop)
 
-
         self.subscription_type = subscription_map(scrapper=self, conf=self.configuration)
         self.instruments_list = instruments_listed
         self.testMode = test_mode
@@ -169,10 +168,12 @@ class DeribitClient(Thread, WebSocketApp):
                 case "hdf5":
                     if type(constant_depth_order_book) == int:
                         self.database = HDF5Daemon(configuration_path=self.configuration_path,
-                                                   subscription_type=self.subscription_type)
+                                                   subscription_type=self.subscription_type,
+                                                   loop=self.loop)
                     elif constant_depth_order_book is False:
                         self.database = HDF5Daemon(configuration_path=self.configuration_path,
-                                                   subscription_type=self.subscription_type)
+                                                   subscription_type=self.subscription_type,
+                                                   loop=self.loop)
                     else:
                         raise ValueError('Unavailable value of depth order book mode')
                     time.sleep(1)
@@ -327,9 +328,9 @@ async def f():
     for _ in tqdm(range(10_000)):
         js['params']['data']['timestamp'] = _
         deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
-        deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
-        deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
-        deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
+        # deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
+        # deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
+        # deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
         # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
     # deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection

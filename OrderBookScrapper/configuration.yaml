@@ -33,7 +33,7 @@ orderBookScrapper:
 
     select_all_order_book: True
 
-    database_daemon: mysql
+    database_daemon: hdf5
 
     add_extra_instruments: []
     # Need to be true if you need to select maturities by configuration file.

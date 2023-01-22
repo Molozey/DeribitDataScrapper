@@ -1,3 +1,5 @@
+import asyncio
+
 from pandas import DataFrame
 
 from OrderBookScrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
@@ -24,15 +26,18 @@ class HDF5Daemon(AbstractDataManager):
     connection: HDFStore = None
     database_cursor = None
 
-    def __init__(self, configuration_path, subscription_type: Optional[AbstractSubscription]):
+    def __init__(self, configuration_path, subscription_type: Optional[AbstractSubscription],
+                 loop: asyncio.unix_events.SelectorEventLoop):
         logging.basicConfig(
             level='INFO',
             format='%(asctime)s | %(levelname)s %(module)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-        super().__init__(config_path=configuration_path, subscription_type=subscription_type)
+        super().__init__(config_path=configuration_path, subscription_type=subscription_type,
+                         loop=loop)
 
     async def _connect_to_database(self):
+        print("Connect HDF5")
         try:
             self.path_to_hdf5_file = f"../dataStorage/{self.cfg['hdf5']['hdf5_database_file']}"
             if not os.path.exists(self.path_to_hdf5_file):
@@ -44,6 +49,7 @@ class HDF5Daemon(AbstractDataManager):
             self.connection.close()
             self.db_cursor = None
             logging.info("Success connection to HDF5 database")
+            return
         except Exception as e:
             logging.error("Connection to database raise error: \n {error}".format(error=e))
             raise ConnectionError("Cannot connect to HDF5 database")
