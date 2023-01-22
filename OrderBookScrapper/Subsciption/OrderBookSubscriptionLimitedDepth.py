@@ -48,7 +48,6 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             return columns
 
     async def _process_response(self, response: dict):
-        print("inside otderbook")
         # SUBSCRIPTION processing
         if response['method'] == "subscription":
             # ORDER BOOK processing. For constant book depth
@@ -57,7 +56,6 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
                     await self.scrapper.database.add_data(
                         update_line=self.extract_data_from_response(input_response=response)
                     )
-                print("Ready process")
                 return 1
 
     def extract_data_from_response(self, input_response: dict) -> ndarray:
@@ -105,7 +103,6 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             logging.warning(f"Instrument {instrument_name} already subscribed")
 
     def create_subscription_request(self):
-        print("Start")
         # Set heartbeat
         self.scrapper.send_new_request(MSG_LIST.set_heartbeat(
             self.scrapper.configuration["orderBookScrapper"]["hearth_beat_time"]))

@@ -1,3 +1,4 @@
+import threading
 
 import nest_asyncio
 nest_asyncio.apply()
@@ -132,7 +133,6 @@ class DeribitClient(Thread, WebSocketApp):
         Thread.__init__(self)
         self.loop = loopB
         asyncio.set_event_loop(self.loop)
-        print("Run forever")
 
 
         self.subscription_type = subscription_map(scrapper=self, conf=self.configuration)
@@ -219,7 +219,6 @@ class DeribitClient(Thread, WebSocketApp):
         """
         response = json.loads(message)
         self._process_callback(response)
-        print("Status", self.loop.is_running())
         # TODO: Create executor function to make code more readable.
         if 'method' in response:
             # Answer to heartbeat request
@@ -230,7 +229,6 @@ class DeribitClient(Thread, WebSocketApp):
             # TODO
             asyncio.run_coroutine_threadsafe(self.subscription_type.process_response_from_server(response=response),
                                   loop=self.loop)
-            print("Task created")
 
     def _process_callback(self, response):
         logging.info(response)
@@ -239,7 +237,6 @@ class DeribitClient(Thread, WebSocketApp):
     def _on_open(self, websocket):
         logging.info("Client start his work")
         self.subscription_type.create_subscription_request()
-        print("No loop after open")
 
     def send_new_request(self, request: dict):
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
@@ -310,26 +307,29 @@ async def f():
     derLoop = asyncio.new_event_loop()
     instruments_list = await scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
-                                  instruments_listed=["BTC-PERPETUAL"], loopB=derLoop)
+                                  instruments_listed=[], loopB=derLoop)
     deribitWorker.start()
+    # derLoop.run_forever()
     # await derLoop.run_in_executor(None, deribitWorker.start)
     # derLoop.create_task(derLoop.run_in_executor(None, deribitWorker.start))
 
+    th = threading.Thread(target=derLoop.run_forever)
+    print("Thread started")
+    th.start()
 
-    print("Go next")
-    derLoop.run_forever()
-
-
-    # js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989478, 'instrument_name': 'BTC-PERPETUAL', 'change_id': 52016142177, 'bids': [[17132.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
-    # js = js.replace("'", "\"")
-    # js = json.loads(js)
+    js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989478, 'instrument_name': 'BTC-PERPETUAL', 'change_id': 52016142177, 'bids': [[17132.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
+    js = js.replace("'", "\"")
+    js = json.loads(js)
     # # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
     # js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989666, 'instrument_name': 'ETH-PERPETUAL', 'change_id': 52016142666, 'bids': [[17666.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
     # js = js.replace("'", "\"")
     # js = json.loads(js)
-    # for _ in tqdm(range(1_00)):
-    #     js['params']['data']['timestamp'] = _
-    #     asyncio.create_task(deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js)))
+    for _ in tqdm(range(10_000)):
+        js['params']['data']['timestamp'] = _
+        deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
+        deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
+        deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
+        deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
         # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
     # deribitWorker.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
