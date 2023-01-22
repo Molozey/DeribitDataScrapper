@@ -66,7 +66,6 @@ class HDF5Daemon(AbstractDataManager):
         #                        data_columns=self.subscription_type.create_columns_list(), format='t')
         return 1
 
-    def _place_data_to_database(self, record_dataframe: DataFrame) -> int:
-        self.async_loop.run_until_complete(
-            self.async_loop.create_task(self.__hdf5_appending_one_table(record_dataframe=record_dataframe)))
+    async def _place_data_to_database(self, record_dataframe: DataFrame) -> int:
+        await self.__hdf5_appending_one_table(record_dataframe=record_dataframe)
         return 1

@@ -26,13 +26,15 @@ class MySqlDaemon(AbstractDataManager):
     connection: connector.connection.MySQLConnection
     database_cursor: connector.connection.MySQLCursor
 
-    def __init__(self, configuration_path, subscription_type: Optional[AbstractSubscription]):
+    def __init__(self, configuration_path, subscription_type: Optional[AbstractSubscription],
+                 loop: asyncio.unix_events.SelectorEventLoop):
         logging.basicConfig(
             level='INFO',
             format='%(asctime)s | %(levelname)s %(module)s | %(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
         )
-        super().__init__(config_path=configuration_path, subscription_type=subscription_type)
+        super().__init__(config_path=configuration_path, subscription_type=subscription_type,
+                         loop=loop)
 
     async def _connect_to_database(self):
         """
@@ -175,21 +177,21 @@ class MySqlDaemon(AbstractDataManager):
             raise NotImplementedError
 
     # TODO: make it better
-    def __database_one_table_record(self, record_dataframe: DataFrame):
+    async def __database_one_table_record(self, record_dataframe: DataFrame):
         data = self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="LIMITED")
         query = INSERT_MULTIPLE_DATA_HEADER_TEMPLATE.format(self.subscription_type.tables_names[0])
         # -1 for delete last coma
         query += INSERT_MULTIPLE_DATA_VALUES_SYMBOL_TEMPLATE(dataframe=data)
-        self.async_loop.run_until_complete(
-            self.async_loop.create_task(self._mysql_post_execution_handler(query=query, need_to_commit=True)))
+        # await asyncio.gather(self._mysql_post_execution_handler(query=query, need_to_commit=True))
+        await self._mysql_post_execution_handler(query=query, need_to_commit=True)
 
     def __database_several_tables_record(self, record_dataframe: DataFrame):
         # TODO: implement
         # self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="UNLIMITED")
         raise NotImplementedError
 
-    def _place_data_to_database(self, record_dataframe: DataFrame):
+    async def _place_data_to_database(self, record_dataframe: DataFrame):
         if self.depth_size == 0:
-            self.__database_several_tables_record(record_dataframe=record_dataframe)
+            await self.__database_several_tables_record(record_dataframe=record_dataframe)
         elif (type(self.depth_size) == int) and (self.depth_size > 0):
-            self.__database_one_table_record(record_dataframe=record_dataframe)
+            await self.__database_one_table_record(record_dataframe=record_dataframe)

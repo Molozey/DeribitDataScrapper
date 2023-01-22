@@ -73,11 +73,12 @@ class AbstractDataManager(ABC):
     batch_number_of_tables: Optional[int] = None
     batch_size_of_table: Optional[int] = None
     batch_currently_selected_table: Optional[int] = None
-    async_loop = asyncio.new_event_loop()
+    async_loop: asyncio.unix_events.SelectorEventLoop
 
     subscription_type: Optional[AbstractSubscription] = None
 
-    def __init__(self, config_path, subscription_type: Optional[AbstractSubscription]):
+    def __init__(self, config_path, subscription_type: Optional[AbstractSubscription],
+                 loop: asyncio.unix_events.SelectorEventLoop):
         # Config file
         with open(config_path, "r") as ymlfile:
             self.cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
@@ -97,8 +98,9 @@ class AbstractDataManager(ABC):
                                                                        "instrumentNameToIdMapFile"])
 
         # Check if all structure and content of record system is correct
-        self.async_loop.run_until_complete(self.async_loop.create_task(self._connect_to_database()))
-        self.async_loop.run_until_complete(self.async_loop.create_task(self._validate_existing_of_database_structure()))
+        self.async_loop = loop
+        asyncio.run_coroutine_threadsafe(self._connect_to_database(), self.async_loop)
+        asyncio.run_coroutine_threadsafe(self._validate_existing_of_database_structure(), self.async_loop)
         # Create tmp_storages
         self._create_tmp_batch_tables()
 
@@ -130,7 +132,7 @@ class AbstractDataManager(ABC):
     async def _create_not_exist_database(self):
         pass
 
-    def add_data(self, update_line: ndarray):
+    async def add_data(self, update_line: ndarray):
         assert update_line.shape[0] == len(self.subscription_type.create_columns_list())
         self.circular_batch_tables[self.batch_currently_selected_table].iloc[self.batch_mutable_pointer] = update_line
         self.batch_mutable_pointer += 1
@@ -141,7 +143,7 @@ class AbstractDataManager(ABC):
                 print("=====" * 20)
 
             self.batch_mutable_pointer = 0
-            self._place_data_to_database(record_dataframe=
+            await self._place_data_to_database(record_dataframe=
                                          self.circular_batch_tables[self.batch_currently_selected_table])
             self.batch_currently_selected_table += 1
             if self.batch_currently_selected_table >= self.batch_number_of_tables:
@@ -192,7 +194,7 @@ class AbstractDataManager(ABC):
             """)
 
     @abstractmethod
-    def _place_data_to_database(self, record_dataframe: DataFrame) -> int:
+    async def _place_data_to_database(self, record_dataframe: DataFrame) -> int:
         """
         Implement this for every unique method for placing data
         :param record_dataframe:

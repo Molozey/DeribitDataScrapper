@@ -1,4 +1,6 @@
+import asyncio
 from abc import ABC, abstractmethod
+import random
 from typing import List, TYPE_CHECKING
 from numpy import ndarray
 from pandas import DataFrame
@@ -46,15 +48,21 @@ class AbstractSubscription(ABC):
         pass
 
     @abstractmethod
-    def create_subscription_request(self) -> str:
+    async def create_subscription_request(self) -> str:
         pass
 
     @abstractmethod
-    def _process_response(self, response: dict):
+    async def _process_response(self, response: dict):
         pass
 
-    def process_response_from_server(self, response: dict):
-        return self._process_response(response=response)
+    async def process_response_from_server(self, response: dict):
+        _r_sl = random.randint(0, 4)
+        print("SLEEP: ", _r_sl)
+        if _r_sl != 0:
+            await asyncio.sleep(_r_sl)
+        _res = await self._process_response(response=response)
+        print("Process response")
+        return _res
 
     @abstractmethod
     def extract_data_from_response(self, input_response: dict) -> ndarray:

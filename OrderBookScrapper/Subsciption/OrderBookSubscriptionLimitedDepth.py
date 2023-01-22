@@ -1,3 +1,5 @@
+import asyncio
+
 from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten
 from OrderBookScrapper.Utils import MSG_LIST
 from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsLimited import \
@@ -45,17 +47,18 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             columns = flatten(columns)
             return columns
 
-    def _process_response(self, response: dict):
+    async def _process_response(self, response: dict):
+        print("inside otderbook")
         # SUBSCRIPTION processing
         if response['method'] == "subscription":
-
             # ORDER BOOK processing. For constant book depth
             if 'change' and 'type' not in response['params']['data']:
                 if self.scrapper.database:
-                    self.scrapper.database.add_data(
+                    await self.scrapper.database.add_data(
                         update_line=self.extract_data_from_response(input_response=response)
                     )
-                return
+                print("Ready process")
+                return 1
 
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         _change_id = input_response['params']['data']['change_id']

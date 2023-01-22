@@ -29,8 +29,9 @@ async def call_api(msg):
             return response
 
 
-def send_request(msg, show_answer=False) -> json:
-    _answer = json.loads(asyncio.get_event_loop().run_until_complete(call_api(json.dumps(msg))))
+async def send_request(msg, show_answer=False) -> json:
+    res = await call_api(json.dumps(msg))
+    _answer = json.loads(res)
     if show_answer:
         pprint(_answer)
 

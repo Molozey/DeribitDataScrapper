@@ -1,3 +1,4 @@
+import asyncio
 import time
 import warnings
 from typing import Optional, Union
@@ -297,7 +298,7 @@ if __name__ == '__main__':
             raise ValueError("Unknown currency")
 
 
-    _instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
+    _instruments_list = asyncio.get_event_loop().run_until_complete(scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper']))
 
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml", instruments_listed=_instruments_list)
     deribitWorker.start()
