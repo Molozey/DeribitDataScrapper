@@ -1,5 +1,9 @@
+import AvailableCurrencies
 from MSG_LIST import *
+
+import asyncio
 from websocket import WebSocketApp, enableTrace, ABNF
+import threading
 from threading import Thread
 
 from datetime import datetime
@@ -13,7 +17,7 @@ from typing import Optional, Union
 class DeribitClient(Thread, WebSocketApp):
     websocket: Optional[WebSocketApp]
 
-    def __init__(self):
+    def __init__(self, loopB):
 
         test_mode = True
 
@@ -23,6 +27,8 @@ class DeribitClient(Thread, WebSocketApp):
         self.time = datetime.now()
 
         self.websocket = None
+        self.loop = loopB
+        asyncio.set_event_loop(self.loop)
         # Set logger settings
         logging.basicConfig(
             level="INFO",
@@ -63,11 +69,13 @@ class DeribitClient(Thread, WebSocketApp):
         :return:
         """
         response = json.loads(message)
-        self._process_callback(response)
+        asyncio.run_coroutine_threadsafe(self._process_callback(response),
+                                         loop=self.loop)
 
-    def _process_callback(self, response):
+    async def _process_callback(self, response):
         logging.info(response)
-        pass
+        await asyncio.sleep(0.5)
+        return 0
 
     def _on_open(self, websocket):
         logging.info("Client start his work")
@@ -78,15 +86,22 @@ class DeribitClient(Thread, WebSocketApp):
         time.sleep(.1)
 
 
-if __name__ == '__main__':
+async def f():
+    derLoop = asyncio.new_event_loop()
 
-    deribitWorker = DeribitClient()
+    deribitWorker = DeribitClient(loopB=derLoop)
+
     deribitWorker.start()
+    th = threading.Thread(target=derLoop.run_forever)
+    print("Thread started")
+    th.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(
     time.sleep(1)
     deribitWorker.send_new_request(auth_message(client_id="W6-2Gwvq",
                                                 client_secret="W9VQRlL7bIdc59DK2s7YrhqHTvw8k2U86nq_Tedsvfc"))
+
+    deribitWorker.send_new_request(request_order_updates_to_currency(AvailableCurrencies.Currency.BITCOIN))
     deribitWorker.send_new_request(request=order_request(
         order_side="buy",
         instrument_name="BTC-PERPETUAL",
@@ -95,3 +110,10 @@ if __name__ == '__main__':
         order_price=21_134.5
     ))
     print("OK")
+
+if __name__ == '__main__':
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.create_task(f())
+    loop.run_forever()
+    time.sleep(1)
