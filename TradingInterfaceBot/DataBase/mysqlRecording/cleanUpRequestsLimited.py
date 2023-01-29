@@ -1,4 +1,25 @@
 
+def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
+    HEADER = "create table {}".format(table_name)
+    REQUEST = HEADER
+    REQUEST += \
+    """
+(
+    record_id       int auto_increment,
+    timestamp       int   null,
+    trade_id        int   null,
+    price           float null,
+    instrument_name TEXT  null,
+    direction       TEXT  null,
+    amount          float null,
+    constraint table_name_pk
+        primary key (record_id)
+);
+"""
+    print(REQUEST)
+    return REQUEST
+
+
 def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: int):
     HEADER = "create table {}".format(table_name)
     REQUIRED_FIELDS = """(

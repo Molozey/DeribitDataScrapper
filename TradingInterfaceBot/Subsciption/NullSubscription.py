@@ -1,10 +1,10 @@
-from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten
+from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription, flatten
 
 from numpy import ndarray
 from functools import partial
 from pandas import DataFrame
 
-from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsLimited import \
+from TradingInterfaceBot.DataBase.mysqlRecording.cleanUpRequestsLimited import \
     REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
 
 

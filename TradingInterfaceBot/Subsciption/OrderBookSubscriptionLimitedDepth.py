@@ -1,9 +1,10 @@
 import asyncio
 
-from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten
-from OrderBookScrapper.Utils import MSG_LIST
-from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsLimited import \
+from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription, flatten
+from TradingInterfaceBot.Utils import MSG_LIST
+from TradingInterfaceBot.DataBase.mysqlRecording.cleanUpRequestsLimited import \
     REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
+from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AutoIncrementDict
 
 from numpy import ndarray
 from functools import partial
@@ -13,7 +14,7 @@ import logging
 import numpy as np
 
 if TYPE_CHECKING:
-    from OrderBookScrapper.Scrapper.DeribitClient import DeribitClient
+    from TradingInterfaceBot.Scrapper.async__deribitClient__dev_script__ import DeribitClient
 
     scrapper_typing = DeribitClient
 else:
@@ -23,6 +24,8 @@ else:
 class OrderBookSubscriptionCONSTANT(AbstractSubscription):
     tables_names = ["TABLE_DEPTH_{}"]
 
+    instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
+
     def __init__(self, scrapper: scrapper_typing, order_book_depth: int):
         self.depth: int = order_book_depth
         self.tables_names = [f"TABLE_DEPTH_{self.depth}"]
@@ -30,6 +33,11 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
                                                       depth_size=self.depth), self.tables_names))
 
         super(OrderBookSubscriptionCONSTANT, self).__init__(scrapper=scrapper)
+        self.number_of_columns = self.depth * 4 + 3
+
+        self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
+                                                                   self.scrapper.configuration["record_system"][
+                                                                       "instrumentNameToIdMapFile"])
 
     def _place_here_tables_names_and_creation_requests(self):
         self.tables_names = [f"TABLE_DEPTH_{self.depth}"]
@@ -52,8 +60,8 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         if response['method'] == "subscription":
             # ORDER BOOK processing. For constant book depth
             if 'change' and 'type' not in response['params']['data']:
-                if self.scrapper.database:
-                    await self.scrapper.database.add_data(
+                if self.database:
+                    await self.database.add_data(
                         update_line=self.extract_data_from_response(input_response=response)
                     )
                 return 1
@@ -61,20 +69,20 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         _change_id = input_response['params']['data']['change_id']
         _timestamp = input_response['params']['data']['timestamp']
-        _instrument_name = self.scrapper.database.instrument_name_instrument_id_map[
+        _instrument_name = self.instrument_name_instrument_id_map[
             input_response['params']['data']['instrument_name']]
         _bids = sorted(input_response['params']['data']['bids'], key=lambda x: x[0], reverse=True)
         _asks = sorted(input_response['params']['data']['asks'], key=lambda x: x[0], reverse=False)
-        _bids_insert_array = [[-1.0, -1.0] for _i in range(self.scrapper.database.depth_size)]
-        _asks_insert_array = [[-1.0, -1.0] for _i in range(self.scrapper.database.depth_size)]
+        _bids_insert_array = [[-1.0, -1.0] for _i in range(self.depth)]
+        _asks_insert_array = [[-1.0, -1.0] for _i in range(self.depth)]
 
-        _pointer = self.scrapper.database.depth_size - 1
-        for i, bid in enumerate(_bids[:self.scrapper.database.depth_size]):
+        _pointer = self.depth - 1
+        for i, bid in enumerate(_bids[:self.depth]):
             _bids_insert_array[_pointer] = bid
             _pointer -= 1
 
-        _pointer = self.scrapper.database.depth_size - 1
-        for i, ask in enumerate(_asks[:self.scrapper.database.depth_size]):
+        _pointer = self.depth - 1
+        for i, ask in enumerate(_asks[:self.depth]):
             _asks_insert_array[i] = ask
             _pointer -= 1
         _bids_insert_array.extend(_asks_insert_array)

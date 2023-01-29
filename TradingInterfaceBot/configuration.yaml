@@ -19,8 +19,8 @@ record_system:
     clean_database_at_startup: True
 
 orderBookScrapper:
-    scrapper_body: OrderBook
-    depth: 2
+    scrapper_body: [OrderBook, Trades]
+    depth: 1
     test_net: False
     currency: BTC
     enable_traceback: False
@@ -29,7 +29,7 @@ orderBookScrapper:
     hearth_beat_time: 60
     group_in_limited_order_book: none
     raise_error_at_synthetic: False
-    logger_level: WARN
+    logger_level: INFO
 
     select_all_order_book: True
 

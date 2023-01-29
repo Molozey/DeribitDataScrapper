@@ -2,8 +2,8 @@ import asyncio
 
 from pandas import DataFrame
 
-from OrderBookScrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
-from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription
+from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager
+from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
 from typing import Optional
 import logging
 
@@ -13,7 +13,7 @@ import sys
 import os
 from pandas import HDFStore
 
-with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
     developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
 del _file
 # Block with developing module | END

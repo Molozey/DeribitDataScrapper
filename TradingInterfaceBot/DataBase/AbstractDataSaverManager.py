@@ -8,13 +8,13 @@ import logging
 import json
 import numpy as np
 
-from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription
+from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
 
 # Block with developing module | START
 import yaml
 import sys
 
-with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
     developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
 del _file
 # Block with developing module | END
@@ -66,7 +66,7 @@ class AutoIncrementDict(dict):
 
 
 class AbstractDataManager(ABC):
-    instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
+    # instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
     circular_batch_tables: Dict[int, DataFrame]
 
     batch_mutable_pointer: Optional[int] = None
@@ -84,18 +84,11 @@ class AbstractDataManager(ABC):
             self.cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
         self.subscription_type = subscription_type
-        constant_depth_mode = self.cfg["orderBookScrapper"]["depth"]
-        if type(constant_depth_mode) == int:
-            self.depth_size = constant_depth_mode
-        elif constant_depth_mode is False:
-            self.depth_size = 0
-        else:
-            raise ValueError("Error in depth")
 
         # Download instrument hashMap
-        self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
-                                                                   self.cfg["record_system"][
-                                                                       "instrumentNameToIdMapFile"])
+        # self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
+        #                                                            self.cfg["record_system"][
+        #                                                                "instrumentNameToIdMapFile"])
 
         # Check if all structure and content of record system is correct
         self.async_loop = loop
@@ -164,7 +157,8 @@ class AbstractDataManager(ABC):
             self.batch_size_of_table = self.cfg["record_system"]["size_of_tmp_batch_table"]
 
             # TODO: remove depth size. Change to number of columns
-            _local = np.zeros(shape=(self.cfg["record_system"]["size_of_tmp_batch_table"], self.depth_size * 4 + 3))
+            _local = np.zeros(shape=(self.cfg["record_system"]["size_of_tmp_batch_table"],
+                                     self.subscription_type.number_of_columns))
             _local[:] = np.NaN
             # Create tmp tables
             self.circular_batch_tables = {_: DataFrame(_local, columns=columns)
@@ -182,7 +176,8 @@ class AbstractDataManager(ABC):
             self.batch_number_of_tables = 1
             self.batch_size_of_table = 1
             # TODO: remove depth size. Change to number of columns
-            _local = np.zeros(shape=(1, self.depth_size * 4 + 3))
+            # _local = np.zeros(shape=(1, self.depth_size * 4 + 3))
+            _local = np.zeros(shape=(1, self.subscription_type.number_of_columns))
             _local[:] = np.NaN
             # Create tmp tables
             self.circular_batch_tables = {0: DataFrame(_local, columns=columns)}

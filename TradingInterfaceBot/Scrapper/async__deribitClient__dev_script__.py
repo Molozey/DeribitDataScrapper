@@ -1,6 +1,8 @@
+from __future__ import annotations
 import threading
 
 import nest_asyncio
+
 nest_asyncio.apply()
 import asyncio
 import random
@@ -10,15 +12,15 @@ import time
 import warnings
 from typing import Optional, Union
 
-from OrderBookScrapper.DataBase.HDF5NewDaemon import HDF5Daemon
-
-from OrderBookScrapper.DataBase.MySQLNewDaemon import MySqlDaemon
-from OrderBookScrapper.Utils import MSG_LIST
-from OrderBookScrapper.Utils.AvailableCurrencies import Currency
-from OrderBookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription
-from OrderBookScrapper.Subsciption.OrderBookSubscriptionLimitedDepth import OrderBookSubscriptionCONSTANT
-
+from TradingInterfaceBot.DataBase.HDF5NewDaemon import HDF5Daemon
+from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager
+from TradingInterfaceBot.DataBase.MySQLNewDaemon import MySqlDaemon
+from TradingInterfaceBot.Utils import MSG_LIST
+from TradingInterfaceBot.Utils.AvailableCurrencies import Currency
+from TradingInterfaceBot.SyncLib.AvailableRequests import get_ticker_by_instrument_request
+from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
+from TradingInterfaceBot.Subsciption.OrderBookSubscriptionLimitedDepth import OrderBookSubscriptionCONSTANT
+from TradingInterfaceBot.Subsciption.TradesSubscription import TradesSubscription
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
 
@@ -29,9 +31,9 @@ import yaml
 
 
 async def scrap_available_instruments(currency: Currency, cfg):
-    from OrderBookScrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request
-    from OrderBookScrapper.Utils.AvailableInstrumentType import InstrumentType
-    from OrderBookScrapper.SyncLib.Scrapper import send_request
+    from TradingInterfaceBot.SyncLib.AvailableRequests import get_instruments_by_currency_request
+    from TradingInterfaceBot.Utils.AvailableInstrumentType import InstrumentType
+    from TradingInterfaceBot.SyncLib.Scrapper import send_request
     import pandas as pd
     import numpy as np
     make_subscriptions_list = await send_request(get_instruments_by_currency_request(currency=currency,
@@ -93,7 +95,8 @@ def validate_configuration_file(configuration_path: str) -> dict:
     if type(cfg["orderBookScrapper"]["add_extra_instruments"]) != list:
         raise TypeError("Invalid type for scrapper configuration")
     if cfg["orderBookScrapper"]["scrapper_body"] != "OrderBook":
-        raise NotImplementedError
+        if cfg["orderBookScrapper"]["scrapper_body"] != ["OrderBook", "Trades"]:
+            raise NotImplementedError
     #
     if type(cfg["record_system"]["use_batches_to_record"]) != bool:
         raise TypeError("Invalid type for record system configuration")
@@ -105,13 +108,78 @@ def validate_configuration_file(configuration_path: str) -> dict:
     return cfg
 
 
-def subscription_map(scrapper, conf: dict) -> AbstractSubscription:
+def subscription_map(scrapper, conf: dict) -> dict[str, AbstractSubscription]:
     match conf["orderBookScrapper"]["scrapper_body"]:
         case "OrderBook":
-            return OrderBookSubscriptionCONSTANT(scrapper=scrapper, order_book_depth=conf["orderBookScrapper"]["depth"])
+            return {"OrderBook":
+                        OrderBookSubscriptionCONSTANT(scrapper=scrapper,
+                                                      order_book_depth=conf["orderBookScrapper"]["depth"])}
+        case ["Trades", "OrderBook"] | ["OrderBook", "Trades"]:
+            return {"OrderBook": OrderBookSubscriptionCONSTANT(scrapper=scrapper,
+                                                               order_book_depth=conf["orderBookScrapper"]["depth"]),
+                    "Trades": TradesSubscription(scrapper=scrapper)}
         case _:
             raise NotImplementedError
 
+
+def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubscription, AbstractDataManager]:
+    result_netting = {}
+    match scrapper.configuration['orderBookScrapper']["database_daemon"]:
+        case 'mysql':
+            for action, subscription_type in scrapper.subscriptions_objects.items():
+                if action == "OrderBook":
+                    if type(scrapper.configuration['orderBookScrapper']["depth"]) == int:
+                        database = MySqlDaemon(configuration_path=scrapper.configuration_path,
+                                                    subscription_type=subscription_type,
+                                                    loop=scrapper.loop)
+
+                    elif scrapper.configuration['orderBookScrapper']["depth"] is False:
+                        database = MySqlDaemon(configuration_path=scrapper.configuration_path,
+                                                    subscription_type=subscription_type,
+                                                    loop=scrapper.loop)
+                    else:
+                        raise ValueError('Unavailable value of depth order book mode')
+
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+                    time.sleep(1)
+                elif action == "Trades":
+                    database = MySqlDaemon(configuration_path=scrapper.configuration_path,
+                                                    subscription_type=subscription_type,
+                                                    loop=scrapper.loop)
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+
+
+        case "hdf5":
+            for action, subscription_type in scrapper.subscriptions_objects.items():
+                if action == "OrderBook":
+                    if type(scrapper.configuration['orderBookScrapper']["depth"]) == int:
+                        database = HDF5Daemon(configuration_path=scrapper.configuration_path,
+                                                   subscription_type=subscription_type,
+                                                   loop=scrapper.loop)
+                    elif scrapper.configuration['orderBookScrapper']["depth"] is False:
+                        database = HDF5Daemon(configuration_path=scrapper.configuration_path,
+                                                   subscription_type=subscription_type,
+                                                   loop=scrapper.loop)
+                    else:
+                        raise ValueError('Unavailable value of depth order book mode')
+
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+                    time.sleep(1)
+                elif action == "Trades":
+                    database = MySqlDaemon(configuration_path=scrapper.configuration_path,
+                                                    subscription_type=subscription_type,
+                                                    loop=scrapper.loop)
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+
+        case _:
+            logging.warning("Unknown database daemon selected")
+            scrapper.database = None
+
+    return result_netting
 
 class DeribitClient(Thread, WebSocketApp):
     websocket: Optional[WebSocketApp]
@@ -134,7 +202,7 @@ class DeribitClient(Thread, WebSocketApp):
         self.loop = loopB
         asyncio.set_event_loop(self.loop)
 
-        self.subscription_type = subscription_map(scrapper=self, conf=self.configuration)
+        self.subscriptions_objects = subscription_map(scrapper=self, conf=self.configuration)
         self.instruments_list = instruments_listed
         self.testMode = test_mode
         self.exchange_version = self._set_exchange()
@@ -151,35 +219,7 @@ class DeribitClient(Thread, WebSocketApp):
         # Set storages for requested data
         self.instrument_requested = set()
         if enable_database_record:
-            match self.configuration['orderBookScrapper']["database_daemon"]:
-                case 'mysql':
-                    if type(constant_depth_order_book) == int:
-                        self.database = MySqlDaemon(configuration_path=self.configuration_path,
-                                                    subscription_type=self.subscription_type,
-                                                    loop=self.loop)
-                    elif constant_depth_order_book is False:
-                        self.database = MySqlDaemon(configuration_path=self.configuration_path,
-                                                    subscription_type=self.subscription_type,
-                                                    loop=self.loop)
-                    else:
-                        raise ValueError('Unavailable value of depth order book mode')
-                    time.sleep(1)
-
-                case "hdf5":
-                    if type(constant_depth_order_book) == int:
-                        self.database = HDF5Daemon(configuration_path=self.configuration_path,
-                                                   subscription_type=self.subscription_type,
-                                                   loop=self.loop)
-                    elif constant_depth_order_book is False:
-                        self.database = HDF5Daemon(configuration_path=self.configuration_path,
-                                                   subscription_type=self.subscription_type,
-                                                   loop=self.loop)
-                    else:
-                        raise ValueError('Unavailable value of depth order book mode')
-                    time.sleep(1)
-                case _:
-                    logging.warning("Unknown database daemon selected")
-                    self.database = None
+            self.subscription_type = net_databases_to_subscriptions(scrapper=self)
 
 
     def _set_exchange(self):
@@ -201,6 +241,7 @@ class DeribitClient(Thread, WebSocketApp):
                 self.websocket.run_forever()
             except Exception as e:
                 print(e)
+                raise e
                 logging.error("Error at run_forever loop")
                 # TODO: place here notificator
                 continue
@@ -219,6 +260,7 @@ class DeribitClient(Thread, WebSocketApp):
         :return:
         """
         response = json.loads(message)
+        print(response)
         self._process_callback(response)
         # TODO: Create executor function to make code more readable.
         if 'method' in response:
@@ -237,9 +279,14 @@ class DeribitClient(Thread, WebSocketApp):
 
     def _on_open(self, websocket):
         logging.info("Client start his work")
-        self.subscription_type.create_subscription_request()
+        print(self.subscription_type)
+        for action, sub in self.subscriptions_objects.items():
+            print(action, sub)
+            sub.create_subscription_request()
 
     def send_new_request(self, request: dict):
+        print("send request")
+        print(request)
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
         # TODO: do it better. Unsync.
         time.sleep(.1)
@@ -308,34 +355,13 @@ async def f():
     derLoop = asyncio.new_event_loop()
     instruments_list = await scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
-                                  instruments_listed=[], loopB=derLoop)
+                                  instruments_listed=['BTC-PERPETUAL'], loopB=derLoop)
     deribitWorker.start()
-    deribitWorker.send_new_request(MSG_LIST.set_heartbeat(15))
-    # derLoop.run_forever()
-    # await derLoop.run_in_executor(None, deribitWorker.start)
-    # derLoop.create_task(derLoop.run_in_executor(None, deribitWorker.start))
-
     th = threading.Thread(target=derLoop.run_forever)
-    print("Thread started")
     th.start()
 
-    js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989478, 'instrument_name': 'BTC-PERPETUAL', 'change_id': 52016142177, 'bids': [[17132.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
-    js = js.replace("'", "\"")
-    js = json.loads(js)
-    # # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-    # js = "{'jsonrpc': '2.0', 'method': 'subscription', 'params': {'channel': 'book.BTC-PERPETUAL.none.10.100ms', 'data': {'timestamp': 1670796989666, 'instrument_name': 'ETH-PERPETUAL', 'change_id': 52016142666, 'bids': [[17666.0, 35530.0], [17131.5, 64020.0], [17131.0, 20000.0], [17130.5, 1510.0], [17130.0, 30.0], [17129.0, 6000.0], [17128.5, 5250.0], [17127.5, 480.0], [17127.0, 200.0], [17126.5, 4990.0]], 'asks': [[17132.5, 52250.0], [17133.0, 12950.0], [17133.5, 2780.0], [17134.0, 21710.0], [17134.5, 18580.0], [17135.0, 20000.0], [17135.5, 109300.0], [17136.0, 1060.0], [17136.5, 77790.0], [17137.0, 34440.0]]}}}"
-    # js = js.replace("'", "\"")
-    # js = json.loads(js)
-    for _ in tqdm(range(10_000)):
-        js['params']['data']['timestamp'] = _
-        deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
-        # deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
-        # deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
-        # deribitWorker._on_message(deribitWorker.websocket, message=json.dumps(js))
-        # deribitWorker.database.add_data(deribitWorker.subscription_type.extract_data_from_response(input_response=js))
-    # deribitWorker.start()
-    # Very important time sleep. I spend smth around 3 hours to understand why my connection
-    # is closed when i try to place new request :(
+    deribitWorker.send_new_request(MSG_LIST.set_heartbeat(15))
+
 
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()

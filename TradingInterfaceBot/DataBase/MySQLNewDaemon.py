@@ -2,18 +2,18 @@ import asyncio
 from datetime import datetime
 from typing import Optional
 
-from OrderBookScrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
+from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager
 import logging
 import mysql.connector as connector
-from OrderBookScrapper.DataBase.mysqlRecording.cleanUpRequestsUnlimited import *
-from OrderBookScrapper.DataBase.mysqlRecording.postDataTemplateLimited import *
-from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription
+from TradingInterfaceBot.DataBase.mysqlRecording.cleanUpRequestsUnlimited import *
+from TradingInterfaceBot.DataBase.mysqlRecording.postDataTemplateLimited import *
+from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
 
 # Block with developing module | START
 import yaml
 import sys
 
-with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
     developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
 del _file
 # Block with developing module | END

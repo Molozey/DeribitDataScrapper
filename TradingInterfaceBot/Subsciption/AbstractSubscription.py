@@ -7,17 +7,20 @@ from pandas import DataFrame
 
 
 if TYPE_CHECKING:
-    from OrderBookScrapper.Scrapper.DeribitClient import DeribitClient
+    from TradingInterfaceBot.Scrapper.async__deribitClient__dev_script__ import DeribitClient
+    from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager
 
     scrapper_typing = DeribitClient
+    database_typing = AbstractDataManager
 else:
     scrapper_typing = object
+    database_typing = object
 
 # Block with developing module | START
 import yaml
 import sys
 
-with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
+with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
     developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
 del _file
 # Block with developing module | END
@@ -34,10 +37,15 @@ def flatten(list_of_lists):
 class AbstractSubscription(ABC):
     tables_names: List[str]
     tables_names_creation: List[str]
+    number_of_columns: int
+    database: database_typing
 
     def __init__(self, scrapper: scrapper_typing):
         self.scrapper = scrapper
         self._place_here_tables_names_and_creation_requests()
+
+    def plug_in_record_system(self, database: database_typing):
+        self.database = database
 
     @abstractmethod
     def _place_here_tables_names_and_creation_requests(self):
