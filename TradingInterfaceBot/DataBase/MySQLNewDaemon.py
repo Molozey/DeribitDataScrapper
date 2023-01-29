@@ -124,57 +124,29 @@ class MySqlDaemon(AbstractDataManager):
         Query to cleanUP mySQL.
         :return:
         """
-        if self.depth_size == 0:
-            for table_name in self.subscription_type.tables_names:
-                _truncate_query = """TRUNCATE table {}""".format(table_name)
-                await self._mysql_post_execution_handler(_truncate_query)
-                del _truncate_query
-        # Limited mode
-        else:
-            for table_name in self.subscription_type.tables_names:
-                _truncate_query = """TRUNCATE table {}""".format(table_name)
-                await self._mysql_post_execution_handler(_truncate_query)
-                del _truncate_query
+        for table_name in self.subscription_type.tables_names:
+            _truncate_query = """TRUNCATE table {}""".format(table_name)
+            await self._mysql_post_execution_handler(_truncate_query)
+            del _truncate_query
 
     async def _create_not_exist_database(self):
         """
         Check if all need tables are exiting. If not creates them.
         :return:
         """
-        # TODO: CLEAN UP THIS in format of subscriptionType;
-        if self.depth_size == 0:
-            raise NotImplementedError
-            _all_exist = True
-            _query = """SHOW TABLES LIKE '{}'"""
-            # script_snapshot_id
-            for table_name in self.subscription_type.tables_names:
-                result = await self._mysql_get_execution_handler(_query.format(table_name))
-                if not result:
-                    logging.warning(f"{table_name} table NOT exist; Start creating...")
-                    await self._mysql_post_execution_handler(REQUEST_TO_CREATE_SCRIPT_SNAPSHOT_ID)
-                    _all_exist = False
+        _all_exist = True
+        _query = """SHOW TABLES LIKE '{}'"""
+        for table_name, table_creation in zip(self.subscription_type.tables_names,
+                                              self.subscription_type.tables_names_creation):
+            result = await self._mysql_get_execution_handler(_query.format(table_name))
+            if not result:
+                logging.warning(f"Table {table_name} NOT exist; Start creating...")
+                await self._mysql_post_execution_handler(
+                    table_creation)
+                _all_exist = False
 
-            if _all_exist:
-                logging.info("All need tables already exists. That's good!")
-
-        # Limited mode
-        elif (type(self.depth_size) == int) and (self.depth_size > 0):
-            _all_exist = True
-            _query = """SHOW TABLES LIKE '{}'"""
-            for table_name, table_creation in zip(self.subscription_type.tables_names,
-                                                  self.subscription_type.tables_names_creation):
-                result = await self._mysql_get_execution_handler(_query.format(table_name))
-                if not result:
-                    logging.warning(f"Table {table_name} NOT exist; Start creating...")
-                    await self._mysql_post_execution_handler(
-                        table_creation)
-                    _all_exist = False
-
-            if _all_exist:
-                logging.info("All need tables already exists. That's good!")
-
-        else:
-            raise NotImplementedError
+        if _all_exist:
+            logging.info("All need tables already exists. That's good!")
 
     # TODO: make it better
     async def __database_one_table_record(self, record_dataframe: DataFrame):
@@ -191,7 +163,4 @@ class MySqlDaemon(AbstractDataManager):
         raise NotImplementedError
 
     async def _place_data_to_database(self, record_dataframe: DataFrame):
-        if self.depth_size == 0:
-            await self.__database_several_tables_record(record_dataframe=record_dataframe)
-        elif (type(self.depth_size) == int) and (self.depth_size > 0):
-            await self.__database_one_table_record(record_dataframe=record_dataframe)
+        await self.__database_one_table_record(record_dataframe=record_dataframe)
