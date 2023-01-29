@@ -7,7 +7,7 @@ from pandas import DataFrame
 
 
 if TYPE_CHECKING:
-    from TradingInterfaceBot.Scrapper.async__deribitClient__dev_script__ import DeribitClient
+    from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient
     from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager
 
     scrapper_typing = DeribitClient
@@ -65,9 +65,9 @@ class AbstractSubscription(ABC):
 
     async def process_response_from_server(self, response: dict):
         # TODO: remove it after test
-        _r_sl = random.randint(0, 4)
-        if _r_sl != 0:
-            await asyncio.sleep(_r_sl)
+        # _r_sl = random.randint(0, 4)
+        # if _r_sl != 0:
+        #     await asyncio.sleep(_r_sl)
         _res = await self._process_response(response=response)
         return _res
 

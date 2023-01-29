@@ -14,7 +14,7 @@ import logging
 import numpy as np
 
 if TYPE_CHECKING:
-    from TradingInterfaceBot.Scrapper.async__deribitClient__dev_script__ import DeribitClient
+    from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient
 
     scrapper_typing = DeribitClient
 else:
@@ -60,6 +60,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         if response['method'] == "subscription":
             # ORDER BOOK processing. For constant book depth
             if 'change' and 'type' not in response['params']['data']:
+
                 if self.database:
                     await self.database.add_data(
                         update_line=self.extract_data_from_response(input_response=response)

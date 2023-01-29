@@ -241,7 +241,6 @@ class DeribitClient(Thread, WebSocketApp):
                 self.websocket.run_forever()
             except Exception as e:
                 print(e)
-                raise e
                 logging.error("Error at run_forever loop")
                 # TODO: place here notificator
                 continue
@@ -270,8 +269,9 @@ class DeribitClient(Thread, WebSocketApp):
                 self.send_new_request(MSG_LIST.test_message())
                 return
             # TODO
-            asyncio.run_coroutine_threadsafe(self.subscription_type.process_response_from_server(response=response),
-                                             loop=self.loop)
+            for action, sub in self.subscriptions_objects.items():
+                asyncio.run_coroutine_threadsafe(sub.process_response_from_server(response=response),
+                                                 loop=self.loop)
 
     def _process_callback(self, response):
         logging.info(response)
@@ -279,14 +279,10 @@ class DeribitClient(Thread, WebSocketApp):
 
     def _on_open(self, websocket):
         logging.info("Client start his work")
-        print(self.subscription_type)
         for action, sub in self.subscriptions_objects.items():
-            print(action, sub)
             sub.create_subscription_request()
 
     def send_new_request(self, request: dict):
-        print("send request")
-        print(request)
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
         # TODO: do it better. Unsync.
         time.sleep(.1)
@@ -357,10 +353,9 @@ async def f():
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
                                   instruments_listed=['BTC-PERPETUAL'], loopB=derLoop)
     deribitWorker.start()
+
     th = threading.Thread(target=derLoop.run_forever)
     th.start()
-
-    deribitWorker.send_new_request(MSG_LIST.set_heartbeat(15))
 
 
 if __name__ == '__main__':

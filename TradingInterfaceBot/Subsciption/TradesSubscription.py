@@ -43,7 +43,7 @@ class TradesSubscription(AbstractSubscription):
 
     async def _process_response(self, response: dict):
         # SUBSCRIPTION processing
-        if response['method'] == "subscription":
+        if response['method'] == "ASSDDFD":
             # ORDER BOOK processing. For constant book depth
             if 'change' and 'type' not in response['params']['data']:
                 if self.scrapper.database:
@@ -51,6 +51,8 @@ class TradesSubscription(AbstractSubscription):
                         update_line=self.extract_data_from_response(input_response=response)
                     )
                 return 1
+
+        return -1
 
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         pass
