@@ -46,3 +46,29 @@ def request_order_updates_to_currency(currency: AvailableCurrencies.Currency):
              "channels": [f"user.orders.future.{currency.currency}.100ms"]}
          }
     return _msg
+
+
+def set_heartbeat(interval=60) -> dict:
+    _msg = \
+        {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "public/set_heartbeat",
+            "params": {
+                "interval": interval
+            }
+        }
+    return _msg
+
+
+def test_message() -> dict:
+    _msg = \
+        {
+            "jsonrpc": "2.0",
+            "id": 8212,
+            "method": "public/test",
+            "params": {
+
+            }
+        }
+    return _msg

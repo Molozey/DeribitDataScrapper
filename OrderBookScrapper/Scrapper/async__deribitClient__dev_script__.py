@@ -229,7 +229,7 @@ class DeribitClient(Thread, WebSocketApp):
                 return
             # TODO
             asyncio.run_coroutine_threadsafe(self.subscription_type.process_response_from_server(response=response),
-                                  loop=self.loop)
+                                             loop=self.loop)
 
     def _process_callback(self, response):
         logging.info(response)
@@ -310,6 +310,7 @@ async def f():
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
                                   instruments_listed=[], loopB=derLoop)
     deribitWorker.start()
+    deribitWorker.send_new_request(MSG_LIST.set_heartbeat(15))
     # derLoop.run_forever()
     # await derLoop.run_in_executor(None, deribitWorker.start)
     # derLoop.create_task(derLoop.run_in_executor(None, deribitWorker.start))

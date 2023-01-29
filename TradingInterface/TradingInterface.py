@@ -1,4 +1,10 @@
+import pprint
+
 import AvailableCurrencies
+from AbstractStrategy import OrderDirection, OrderType, OrderState, OrderStructure, OrderUpdateCallback
+
+from AbstractStrategy import AbstractStrategy, BaseStrategy
+
 from MSG_LIST import *
 
 import asyncio
@@ -14,10 +20,11 @@ import warnings
 from typing import Optional, Union
 
 
-class DeribitClient(Thread, WebSocketApp):
+class TradingDeribitInterface(Thread, WebSocketApp):
     websocket: Optional[WebSocketApp]
+    connected_strategy: AbstractStrategy
 
-    def __init__(self, loopB):
+    def __init__(self, loopB, strategy: AbstractStrategy):
 
         test_mode = True
 
@@ -26,6 +33,7 @@ class DeribitClient(Thread, WebSocketApp):
         self.exchange_version = self._set_exchange()
         self.time = datetime.now()
 
+        self.connected_strategy = strategy
         self.websocket = None
         self.loop = loopB
         asyncio.set_event_loop(self.loop)
@@ -69,11 +77,43 @@ class DeribitClient(Thread, WebSocketApp):
         :return:
         """
         response = json.loads(message)
+        if 'method' in response:
+            # Answer to heartbeat request
+            if response['method'] == 'heartbeat':
+                # Send test message to approve that connection is still alive
+                self.send_new_request(test_message())
+                return
+
         asyncio.run_coroutine_threadsafe(self._process_callback(response),
                                          loop=self.loop)
 
     async def _process_callback(self, response):
-        logging.info(response)
+        if ('result' in response) and ('order' in response['result']):
+            logging.info("ORDER LINE")
+            logging.info(response)
+            logging.info("ORDER END LINE")
+        else:
+            logging.info(response)
+        # pprint.pprint(response)
+        # Order Processing
+        if 'result' in response:
+            if 'order' in response['result']:
+                content = response['result']["order"]
+                price = content["price"],
+                direction = OrderDirection.LONG if content["direction"] == "buy" else OrderDirection.SHORT
+                match content["order_type"]:
+                    case OrderType.LIMIT.deribit_name:
+                        print("limit")
+                        order_type = OrderType.LIMIT
+                    case OrderType.MARKET.deribit_name:
+                        print("market")
+                        order_type = OrderType.MARKET
+                    case _:
+                        raise NotImplementedError
+
+                # OrderUpdateCallback(
+                #     price=price, direction=direction
+                # )
         await asyncio.sleep(0.5)
         return 0
 
@@ -85,32 +125,31 @@ class DeribitClient(Thread, WebSocketApp):
         # TODO: do it better. Unsync.
         time.sleep(.1)
 
+    def close_order(self, orderStructure: OrderStructure):
+        pass
+
+    def create_order(self, orderStructure: OrderStructure):
+        pass
+
 
 async def f():
     derLoop = asyncio.new_event_loop()
 
-    deribitWorker = DeribitClient(loopB=derLoop)
+    deribitWorker = TradingDeribitInterface(loopB=derLoop, strategy=BaseStrategy())
 
+    deribitWorker.connected_strategy.add_trading_interface(deribitWorker)
     deribitWorker.start()
     th = threading.Thread(target=derLoop.run_forever)
-    print("Thread started")
     th.start()
     # Very important time sleep. I spend smth around 3 hours to understand why my connection
     # is closed when i try to place new request :(
     time.sleep(1)
     deribitWorker.send_new_request(auth_message(client_id="W6-2Gwvq",
                                                 client_secret="W9VQRlL7bIdc59DK2s7YrhqHTvw8k2U86nq_Tedsvfc"))
-
+    deribitWorker.send_new_request(set_heartbeat(15))
     deribitWorker.send_new_request(request_order_updates_to_currency(AvailableCurrencies.Currency.BITCOIN))
-    deribitWorker.send_new_request(request=order_request(
-        order_side="buy",
-        instrument_name="BTC-PERPETUAL",
-        amount=10_00,
-        order_type="limit",
-        order_price=21_134.5
-    ))
-    print("OK")
 
+    deribitWorker.connected_strategy.cold_start_dev_func()
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
