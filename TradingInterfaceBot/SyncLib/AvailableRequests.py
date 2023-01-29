@@ -1,5 +1,5 @@
-from OrderBookScrapper.Utils.AvailableInstrumentType import InstrumentType
-from OrderBookScrapper.Utils import AvailableInstruments, AvailableCurrencies
+from TradingInterfaceBot.Utils.AvailableInstrumentType import InstrumentType
+from TradingInterfaceBot.Utils import AvailableInstruments, AvailableCurrencies
 import json
 
 

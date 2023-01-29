@@ -16,7 +16,6 @@ def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
         primary key (record_id)
 );
 """
-    print(REQUEST)
     return REQUEST
 
 

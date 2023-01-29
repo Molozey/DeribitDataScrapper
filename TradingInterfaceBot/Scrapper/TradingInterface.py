@@ -181,6 +181,13 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
 
     return result_netting
 
+
+logging.basicConfig(
+    level=logging.DEBUG,
+    format=f"%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+
 class DeribitClient(Thread, WebSocketApp):
     websocket: Optional[WebSocketApp]
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
@@ -211,9 +218,11 @@ class DeribitClient(Thread, WebSocketApp):
         self.websocket = None
         self.enable_traceback = enable_traceback
         # Set logger settings
+        # logging.root.setLevel(self.configuration['orderBookScrapper']["logger_level"])
+        #'%(asctime)s | %(levelname)s | %(message)s'
         logging.basicConfig(
-            level=self.configuration['orderBookScrapper']["logger_level"],
-            format='%(asctime)s | %(levelname)s | %(message)s',
+            level=logging.DEBUG,
+            format=f"%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
             datefmt='%Y-%m-%d %H:%M:%S'
         )
         # Set storages for requested data
@@ -259,7 +268,6 @@ class DeribitClient(Thread, WebSocketApp):
         :return:
         """
         response = json.loads(message)
-        print(response)
         self._process_callback(response)
         # TODO: Create executor function to make code more readable.
         if 'method' in response:

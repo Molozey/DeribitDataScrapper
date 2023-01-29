@@ -12,7 +12,7 @@ import logging
 import numpy as np
 
 if TYPE_CHECKING:
-    from TradingInterfaceBot.Scrapper.async__deribitClient__dev_script__ import DeribitClient
+    from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient
 
     scrapper_typing = DeribitClient
 else:
@@ -38,7 +38,6 @@ class TradesSubscription(AbstractSubscription):
         columns.extend(map(lambda x: [f"test_column_{x}"], range(self.number_of_columns)))
 
         columns = flatten(columns)
-        print(columns)
         return columns
 
     async def _process_response(self, response: dict):
