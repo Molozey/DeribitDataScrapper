@@ -12,4 +12,4 @@ class BaseStrategy(AbstractStrategy):
         pass
 
     async def on_tick_update(self, callback: dict):
-        pass
+        print(callback)
