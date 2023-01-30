@@ -19,10 +19,10 @@ record_system:
     clean_database_at_startup: True
 
 orderBookScrapper:
-#    scrapper_body: [OrderBook, Trades]
-    scrapper_body: [Trades]
-    depth: 1
-    test_net: False
+    scrapper_body: [OrderBook, Trades]
+#    scrapper_body: [Trades]
+    depth: 10
+    test_net: True
     currency: BTC
     enable_traceback: False
     enable_database_record: True

@@ -1,4 +1,7 @@
 import asyncio
+import threading
+import os
+import signal
 from datetime import datetime
 from typing import Optional
 
@@ -42,8 +45,10 @@ class MySqlDaemon(AbstractDataManager):
         :return:
         """
         flag = 0
-        while flag < self.cfg["mysql"]["reconnect_max_attempts"]:
+        while flag <= self.cfg["mysql"]["reconnect_max_attempts"]:
             if flag >= self.cfg["mysql"]["reconnect_max_attempts"]:
+                logging.error("Cannot connect to MySQL. Reached maximum attempts")
+                os.kill(os.getpid(), signal.SIGUSR1)
                 raise ConnectionError("Cannot connect to MySQL. Reached maximum attempts")
 
             try:
@@ -67,9 +72,11 @@ class MySqlDaemon(AbstractDataManager):
         if developConfiguration["MY_SQL_DAEMON"]["SHOW_QUERY_FOR_POST"]:
             print(f"POST MYSQL REQUEST: QUERY | {query} | TIME {datetime.now()}")
         flag = 0
-        while flag < self.cfg["mysql"]["reconnect_max_attempts"]:
+        while flag <= self.cfg["mysql"]["reconnect_max_attempts"]:
             if flag >= self.cfg["mysql"]["reconnect_max_attempts"]:
-                raise ConnectionError("Cannot execute MySQL query. Reached maximum attempts")
+                logging.error("Cannot connect to MySQL. Reached maximum attempts")
+                os.kill(os.getpid(), signal.SIGUSR1)
+                raise ConnectionError("Cannot connect to MySQL. Reached maximum attempts")
             try:
                 self.database_cursor.execute(query)
                 if need_to_commit:
@@ -90,9 +97,11 @@ class MySqlDaemon(AbstractDataManager):
         if developConfiguration["MY_SQL_DAEMON"]["SHOW_QUERY_FOR_GET"]:
             print(f"GET MYSQL REQUEST: QUERY | {query} | TIME {datetime.now()}")
         flag = 0
-        while flag < self.cfg["mysql"]["reconnect_max_attempts"]:
+        while flag <= self.cfg["mysql"]["reconnect_max_attempts"]:
             if flag >= self.cfg["mysql"]["reconnect_max_attempts"]:
-                raise ConnectionError("Cannot execute MySQL query. Reached maximum attempts")
+                logging.error("Cannot connect to MySQL. Reached maximum attempts")
+                os.kill(os.getpid(), signal.SIGUSR1)
+                raise ConnectionError("Cannot connect to MySQL. Reached maximum attempts")
             try:
                 self.database_cursor.execute(query)
                 return self.database_cursor.fetchone()
@@ -107,8 +116,10 @@ class MySqlDaemon(AbstractDataManager):
         :return:
         """
         flag = 0
-        while flag < self.cfg["mysql"]["reconnect_max_attempts"]:
+        while flag <= self.cfg["mysql"]["reconnect_max_attempts"]:
             if flag >= self.cfg["mysql"]["reconnect_max_attempts"]:
+                logging.error("Cannot connect to MySQL. Reached maximum attempts")
+                os.kill(os.getpid(), signal.SIGUSR1)
                 raise ConnectionError("Cannot connect to MySQL. Reached maximum attempts")
             try:
                 await self.__clean_up_pipeline()
@@ -160,6 +171,9 @@ class MySqlDaemon(AbstractDataManager):
     def __database_several_tables_record(self, record_dataframe: DataFrame):
         # TODO: implement
         # self.subscription_type.record_to_database(record_dataframe=record_dataframe, tag_of_data="UNLIMITED")
+        self.subscription_type.scrapper.loop.stop()
+        logging.error("NotImplementedError")
+        os.kill(os.getpid(), signal.SIGUSR1)
         raise NotImplementedError
 
     async def _place_data_to_database(self, record_dataframe: DataFrame):

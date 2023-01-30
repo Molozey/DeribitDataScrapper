@@ -21,6 +21,9 @@ from TradingInterfaceBot.SyncLib.AvailableRequests import get_ticker_by_instrume
 from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
 from TradingInterfaceBot.Subsciption.OrderBookSubscriptionLimitedDepth import OrderBookSubscriptionCONSTANT
 from TradingInterfaceBot.Subsciption.TradesSubscription import TradesSubscription
+from TradingInterfaceBot.Strategy.BasicStrategy import BaseStrategy
+from TradingInterfaceBot.Strategy.AbstractStrategy import AbstractStrategy
+
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
 
@@ -54,7 +57,6 @@ async def scrap_available_instruments(currency: Currency, cfg):
     if selected_maturity == -1:
         warnings.warn("Selected list of instruments is empty")
         return []
-    # selected_maturity = 3
     selected_maturity = available_maturities.iloc[selected_maturity]['DeribitNaming']
     print('\nYou select:', selected_maturity)
 
@@ -62,8 +64,9 @@ async def scrap_available_instruments(currency: Currency, cfg):
                         list(filter(lambda x: (selected_maturity in x["instrument_name"]) and (
                                 x["option_type"] == "call" or "put"), answer))))
 
-    get_underlying = send_request(get_ticker_by_instrument_request(selected[0]),
-                                  show_answer=False)['result']['underlying_index']
+    get_underlying = await send_request(get_ticker_by_instrument_request(selected[0]),
+                                        show_answer=False)
+    get_underlying = get_underlying['result']['underlying_index']
     if 'SYN' not in get_underlying:
         selected.append(get_underlying)
     else:
@@ -94,35 +97,56 @@ def validate_configuration_file(configuration_path: str) -> dict:
         raise TypeError("Invalid type for scrapper configuration")
     if type(cfg["orderBookScrapper"]["add_extra_instruments"]) != list:
         raise TypeError("Invalid type for scrapper configuration")
-    if cfg["orderBookScrapper"]["scrapper_body"] != ["OrderBook"]:
-        if cfg["orderBookScrapper"]["scrapper_body"] != ["OrderBook", "Trades"]:
-            if cfg["orderBookScrapper"]["scrapper_body"] != ["Trades"]:
-                raise NotImplementedError
+    print(cfg["orderBookScrapper"]["scrapper_body"])
+    available_subs = list(map(lambda x: 1 if (x != "OrderBook") and (x != "Trades") and (x != "Portfolio") else 0,
+                              cfg["orderBookScrapper"]["scrapper_body"]))
+    if sum(available_subs) != 0:
+        logging.warning("Unknown subscriptions at scrapper_body")
+        loop.stop()
+        raise NotImplementedError
     #
     if type(cfg["record_system"]["use_batches_to_record"]) != bool:
+        loop.stop()
         raise TypeError("Invalid type for record system configuration")
     if type(cfg["record_system"]["number_of_tmp_tables"]) != int:
+        loop.stop()
         raise TypeError("Invalid type for record system configuration")
     if type(cfg["record_system"]["size_of_tmp_batch_table"]) != int:
+        loop.stop()
         raise TypeError("Invalid type for record system configuration")
 
     return cfg
 
 
 def subscription_map(scrapper, conf: dict) -> dict[str, AbstractSubscription]:
-    match conf["orderBookScrapper"]["scrapper_body"]:
-        case ["OrderBook"]:
-            return {"OrderBook":
-                        OrderBookSubscriptionCONSTANT(scrapper=scrapper,
-                                                      order_book_depth=conf["orderBookScrapper"]["depth"])}
-        case ["Trades", "OrderBook"] | ["OrderBook", "Trades"]:
-            return {"OrderBook": OrderBookSubscriptionCONSTANT(scrapper=scrapper,
-                                                               order_book_depth=conf["orderBookScrapper"]["depth"]),
-                    "Trades": TradesSubscription(scrapper=scrapper)}
-        case ["Trades"]:
-            return {"Trades": TradesSubscription(scrapper=scrapper)}
-        case _:
+    res_dict: dict[str, AbstractSubscription] = dict()
+    for sub in conf["orderBookScrapper"]["scrapper_body"]:
+        if sub == "OrderBook":
+            res_dict["OrderBook"]: OrderBookSubscriptionCONSTANT = \
+                OrderBookSubscriptionCONSTANT(scrapper=scrapper, order_book_depth=conf["orderBookScrapper"]["depth"])
+        elif sub == "Trades":
+            res_dict["Trades"]: TradesSubscription = TradesSubscription(scrapper=scrapper)
+        elif sub == "Portfolio":
+            loop.stop()
             raise NotImplementedError
+        elif sub == "OrderChange":
+            loop.stop()
+            raise NotImplementedError
+
+    return res_dict
+    # match conf["orderBookScrapper"]["scrapper_body"]:
+    #     case ["OrderBook"]:
+    #         return {"OrderBook":
+    #                     OrderBookSubscriptionCONSTANT(scrapper=scrapper,
+    #                                                   order_book_depth=conf["orderBookScrapper"]["depth"])}
+    #     case ["Trades", "OrderBook"] | ["OrderBook", "Trades"]:
+    #         return {"OrderBook": OrderBookSubscriptionCONSTANT(scrapper=scrapper,
+    #                                                            order_book_depth=conf["orderBookScrapper"]["depth"]),
+    #                 "Trades": TradesSubscription(scrapper=scrapper)}
+    #     case ["Trades"]:
+    #         return {"Trades": TradesSubscription(scrapper=scrapper)}
+    #     case _:
+    #         raise NotImplementedError
 
 
 def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubscription, AbstractDataManager]:
@@ -141,6 +165,7 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                                                subscription_type=subscription_type,
                                                loop=scrapper.loop)
                     else:
+                        loop.stop()
                         raise ValueError('Unavailable value of depth order book mode')
 
                     result_netting[subscription_type] = database
@@ -165,6 +190,7 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                                               subscription_type=subscription_type,
                                               loop=scrapper.loop)
                     else:
+                        loop.stop()
                         raise ValueError('Unavailable value of depth order book mode')
 
                     result_netting[subscription_type] = database
@@ -189,6 +215,8 @@ class DeribitClient(Thread, WebSocketApp):
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
     loop: asyncio.unix_events.SelectorEventLoop
     instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
+
+    connected_strategy: Optional[AbstractStrategy] = None
 
     def __init__(self, cfg, cfg_path: str, loopB, instruments_listed: list = []):
 
@@ -269,10 +297,8 @@ class DeribitClient(Thread, WebSocketApp):
                 return
             # TODO
             for action, sub in self.subscriptions_objects.items():
-                print("add to loop")
                 asyncio.run_coroutine_threadsafe(sub.process_response_from_server(response=response),
                                                  loop=self.loop)
-            print("break from loop")
     def _process_callback(self, response):
         logging.info(response)
         pass
@@ -291,6 +317,8 @@ class DeribitClient(Thread, WebSocketApp):
         # TODO: do it better. Unsync.
         time.sleep(.1)
 
+    def add_strategy(self, strategy: AbstractStrategy):
+        self.connected_strategy = strategy
     # def make_new_subscribe_all_book(self, instrument_name: str, type_of_data="book", interval="100ms"):
     #     if instrument_name not in self.instrument_requested:
     #         subscription_message = MSG_LIST.make_subscription_all_book(instrument_name, type_of_data=type_of_data,
@@ -357,6 +385,7 @@ async def f():
         case "ETH":
             _currency = Currency.ETHER
         case _:
+            loop.stop()
             raise ValueError("Unknown currency")
 
     derLoop = asyncio.new_event_loop()
@@ -364,6 +393,12 @@ async def f():
 
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
                                   instruments_listed=instruments_list, loopB=derLoop)
+
+    baseStrategy = BaseStrategy()
+    baseStrategy.connect_data_provider(data_provider=deribitWorker)
+
+    deribitWorker.add_strategy(baseStrategy)
+
     deribitWorker.start()
 
     th = threading.Thread(target=derLoop.run_forever)

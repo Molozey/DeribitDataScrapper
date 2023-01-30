@@ -20,23 +20,25 @@ else:
     scrapper_typing = object
 
 
-class TradesSubscription(AbstractSubscription):
+class OwnOrdersSubscription(AbstractSubscription):
     tables_names = ["Trades_table_{}"]
 
     def __init__(self, scrapper: scrapper_typing):
-        self.tables_names = [f"Trades_table_test"]
+        self.tables_names = [f"User_orders_test"]
         self.tables_names_creation = list(map(REQUEST_TO_CREATE_TRADES_TABLE, self.tables_names))
 
-        super(TradesSubscription, self).__init__(scrapper=scrapper)
+        super(OwnOrdersSubscription, self).__init__(scrapper=scrapper)
         self.number_of_columns = 7
         self.instrument_name_instrument_id_map = self.scrapper.instrument_name_instrument_id_map
 
     def _place_here_tables_names_and_creation_requests(self):
-        self.tables_names = [f"Trades_table_test"]
+        self.tables_names = [f"User_orders_test"]
         self.tables_names_creation = list(map(REQUEST_TO_CREATE_TRADES_TABLE, self.tables_names))
 
     def create_columns_list(self) -> List[str]:
-        columns = ["CHANGE_ID", "TIMESTAMP_VALUE", "TRADE_ID", "PRICE", "NAME_INSTRUMENT", "DIRECTION", "AMOUNT"]
+        columns = ["CHANGE_ID", "CREATION_TIMESTAMP", "LAST_UPDATE_TIMESTAMP", "NAME_INSTRUMENT", "ORDER_TYPE",
+                   "ORDER_STATE", "ORDER_ID", "FILLED_AMOUNT", "COMMISSION", "AVERAGE_PRICE", "PRICE",
+                   "DIRECTION", "AMOUNT"]
         columns = flatten(columns)
         return columns
 
