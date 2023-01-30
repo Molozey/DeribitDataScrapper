@@ -126,21 +126,46 @@ class AbstractDataManager(ABC):
         pass
 
     async def add_data(self, update_line: ndarray):
-        assert update_line.shape[0] == len(self.subscription_type.create_columns_list())
-        self.circular_batch_tables[self.batch_currently_selected_table].iloc[self.batch_mutable_pointer] = update_line
-        self.batch_mutable_pointer += 1
-        if self.batch_mutable_pointer >= self.batch_size_of_table:
-            if developConfiguration["DATA_MANAGER"]["SHOW_WHEN_DATA_TRANSFERS"]:
-                print("Transfer data:\n", self.circular_batch_tables[self.batch_currently_selected_table], "\n")
-                print(f"Pointer In Table: ({self.batch_mutable_pointer}) | Pointer Out Table: ({self.batch_currently_selected_table})")
-                print("=====" * 20)
+        # TODO: Make ability to record 2D array
 
-            self.batch_mutable_pointer = 0
-            await self._place_data_to_database(record_dataframe=
-                                         self.circular_batch_tables[self.batch_currently_selected_table])
-            self.batch_currently_selected_table += 1
-            if self.batch_currently_selected_table >= self.batch_number_of_tables:
-                self.batch_currently_selected_table = 0
+        # Hardcoded solution. in case 1D array
+        if len(update_line.shape) == 1:
+            assert update_line.shape[0] == len(self.subscription_type.create_columns_list())
+            self.circular_batch_tables[self.batch_currently_selected_table].iloc[self.batch_mutable_pointer] = update_line
+            self.batch_mutable_pointer += 1
+            if self.batch_mutable_pointer >= self.batch_size_of_table:
+                if developConfiguration["DATA_MANAGER"]["SHOW_WHEN_DATA_TRANSFERS"]:
+                    print("Transfer data:\n", self.circular_batch_tables[self.batch_currently_selected_table], "\n")
+                    print(f"Pointer In Table: ({self.batch_mutable_pointer}) | Pointer Out Table: ({self.batch_currently_selected_table})")
+                    print("=====" * 20)
+
+                self.batch_mutable_pointer = 0
+                await self._place_data_to_database(record_dataframe=
+                                             self.circular_batch_tables[self.batch_currently_selected_table])
+                self.batch_currently_selected_table += 1
+                if self.batch_currently_selected_table >= self.batch_number_of_tables:
+                    self.batch_currently_selected_table = 0
+
+        # Hardcoded solution. in case 2D array
+        if len(update_line.shape) == 2:
+            assert update_line.shape[1] == len(self.subscription_type.create_columns_list())
+            for update_object in update_line:
+                self.circular_batch_tables[self.batch_currently_selected_table].iloc[
+                    self.batch_mutable_pointer] = update_object
+                self.batch_mutable_pointer += 1
+                if self.batch_mutable_pointer >= self.batch_size_of_table:
+                    if developConfiguration["DATA_MANAGER"]["SHOW_WHEN_DATA_TRANSFERS"]:
+                        print("Transfer data:\n", self.circular_batch_tables[self.batch_currently_selected_table], "\n")
+                        print(
+                            f"Pointer In Table: ({self.batch_mutable_pointer}) | Pointer Out Table: ({self.batch_currently_selected_table})")
+                        print("=====" * 20)
+
+                    self.batch_mutable_pointer = 0
+                    await self._place_data_to_database(record_dataframe=
+                                                       self.circular_batch_tables[self.batch_currently_selected_table])
+                    self.batch_currently_selected_table += 1
+                    if self.batch_currently_selected_table >= self.batch_number_of_tables:
+                        self.batch_currently_selected_table = 0
 
     def _create_tmp_batch_tables(self):
         """

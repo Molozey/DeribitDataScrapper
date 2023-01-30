@@ -13,7 +13,7 @@ import warnings
 from typing import Optional, Union
 
 from TradingInterfaceBot.DataBase.HDF5NewDaemon import HDF5Daemon
-from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager
+from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager, AutoIncrementDict
 from TradingInterfaceBot.DataBase.MySQLNewDaemon import MySqlDaemon
 from TradingInterfaceBot.Utils import MSG_LIST
 from TradingInterfaceBot.Utils.AvailableCurrencies import Currency
@@ -94,9 +94,10 @@ def validate_configuration_file(configuration_path: str) -> dict:
         raise TypeError("Invalid type for scrapper configuration")
     if type(cfg["orderBookScrapper"]["add_extra_instruments"]) != list:
         raise TypeError("Invalid type for scrapper configuration")
-    if cfg["orderBookScrapper"]["scrapper_body"] != "OrderBook":
+    if cfg["orderBookScrapper"]["scrapper_body"] != ["OrderBook"]:
         if cfg["orderBookScrapper"]["scrapper_body"] != ["OrderBook", "Trades"]:
-            raise NotImplementedError
+            if cfg["orderBookScrapper"]["scrapper_body"] != ["Trades"]:
+                raise NotImplementedError
     #
     if type(cfg["record_system"]["use_batches_to_record"]) != bool:
         raise TypeError("Invalid type for record system configuration")
@@ -110,7 +111,7 @@ def validate_configuration_file(configuration_path: str) -> dict:
 
 def subscription_map(scrapper, conf: dict) -> dict[str, AbstractSubscription]:
     match conf["orderBookScrapper"]["scrapper_body"]:
-        case "OrderBook":
+        case ["OrderBook"]:
             return {"OrderBook":
                         OrderBookSubscriptionCONSTANT(scrapper=scrapper,
                                                       order_book_depth=conf["orderBookScrapper"]["depth"])}
@@ -118,6 +119,8 @@ def subscription_map(scrapper, conf: dict) -> dict[str, AbstractSubscription]:
             return {"OrderBook": OrderBookSubscriptionCONSTANT(scrapper=scrapper,
                                                                order_book_depth=conf["orderBookScrapper"]["depth"]),
                     "Trades": TradesSubscription(scrapper=scrapper)}
+        case ["Trades"]:
+            return {"Trades": TradesSubscription(scrapper=scrapper)}
         case _:
             raise NotImplementedError
 
@@ -130,13 +133,13 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                 if action == "OrderBook":
                     if type(scrapper.configuration['orderBookScrapper']["depth"]) == int:
                         database = MySqlDaemon(configuration_path=scrapper.configuration_path,
-                                                    subscription_type=subscription_type,
-                                                    loop=scrapper.loop)
+                                               subscription_type=subscription_type,
+                                               loop=scrapper.loop)
 
                     elif scrapper.configuration['orderBookScrapper']["depth"] is False:
                         database = MySqlDaemon(configuration_path=scrapper.configuration_path,
-                                                    subscription_type=subscription_type,
-                                                    loop=scrapper.loop)
+                                               subscription_type=subscription_type,
+                                               loop=scrapper.loop)
                     else:
                         raise ValueError('Unavailable value of depth order book mode')
 
@@ -145,23 +148,22 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                     time.sleep(1)
                 elif action == "Trades":
                     database = MySqlDaemon(configuration_path=scrapper.configuration_path,
-                                                    subscription_type=subscription_type,
-                                                    loop=scrapper.loop)
+                                           subscription_type=subscription_type,
+                                           loop=scrapper.loop)
                     result_netting[subscription_type] = database
                     subscription_type.plug_in_record_system(database=database)
-
 
         case "hdf5":
             for action, subscription_type in scrapper.subscriptions_objects.items():
                 if action == "OrderBook":
                     if type(scrapper.configuration['orderBookScrapper']["depth"]) == int:
                         database = HDF5Daemon(configuration_path=scrapper.configuration_path,
-                                                   subscription_type=subscription_type,
-                                                   loop=scrapper.loop)
+                                              subscription_type=subscription_type,
+                                              loop=scrapper.loop)
                     elif scrapper.configuration['orderBookScrapper']["depth"] is False:
                         database = HDF5Daemon(configuration_path=scrapper.configuration_path,
-                                                   subscription_type=subscription_type,
-                                                   loop=scrapper.loop)
+                                              subscription_type=subscription_type,
+                                              loop=scrapper.loop)
                     else:
                         raise ValueError('Unavailable value of depth order book mode')
 
@@ -170,8 +172,8 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                     time.sleep(1)
                 elif action == "Trades":
                     database = MySqlDaemon(configuration_path=scrapper.configuration_path,
-                                                    subscription_type=subscription_type,
-                                                    loop=scrapper.loop)
+                                           subscription_type=subscription_type,
+                                           loop=scrapper.loop)
                     result_netting[subscription_type] = database
                     subscription_type.plug_in_record_system(database=database)
 
@@ -182,16 +184,11 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
     return result_netting
 
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format=f"%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
-
 class DeribitClient(Thread, WebSocketApp):
     websocket: Optional[WebSocketApp]
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
     loop: asyncio.unix_events.SelectorEventLoop
+    instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
 
     def __init__(self, cfg, cfg_path: str, loopB, instruments_listed: list = []):
 
@@ -204,6 +201,9 @@ class DeribitClient(Thread, WebSocketApp):
         clean_database = self.configuration['orderBookScrapper']["clean_database"]
         constant_depth_order_book = self.configuration['orderBookScrapper']["depth"]
         instruments_listed = instruments_listed
+        self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
+                                                                   self.configuration["record_system"][
+                                                                       "instrumentNameToIdMapFile"])
 
         Thread.__init__(self)
         self.loop = loopB
@@ -217,19 +217,10 @@ class DeribitClient(Thread, WebSocketApp):
 
         self.websocket = None
         self.enable_traceback = enable_traceback
-        # Set logger settings
-        # logging.root.setLevel(self.configuration['orderBookScrapper']["logger_level"])
-        #'%(asctime)s | %(levelname)s | %(message)s'
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format=f"%(asctime)s - [%(levelname)s] - %(name)s - (%(filename)s).%(funcName)s(%(lineno)d) - %(message)s",
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
         # Set storages for requested data
         self.instrument_requested = set()
         if enable_database_record:
             self.subscription_type = net_databases_to_subscriptions(scrapper=self)
-
 
     def _set_exchange(self):
         if self.testMode:
@@ -278,14 +269,19 @@ class DeribitClient(Thread, WebSocketApp):
                 return
             # TODO
             for action, sub in self.subscriptions_objects.items():
+                print("add to loop")
                 asyncio.run_coroutine_threadsafe(sub.process_response_from_server(response=response),
                                                  loop=self.loop)
-
+            print("break from loop")
     def _process_callback(self, response):
         logging.info(response)
         pass
 
     def _on_open(self, websocket):
+        # Set heartbeat
+        self.send_new_request(MSG_LIST.set_heartbeat(
+            self.configuration["orderBookScrapper"]["hearth_beat_time"]))
+
         logging.info("Client start his work")
         for action, sub in self.subscriptions_objects.items():
             sub.create_subscription_request()
@@ -348,6 +344,13 @@ class DeribitClient(Thread, WebSocketApp):
 
 async def f():
     configuration = validate_configuration_file("../configuration.yaml")
+    logging.basicConfig(
+        level=configuration['orderBookScrapper']["logger_level"],
+        format=f"%(asctime)s | [%(levelname)s] | [%(threadName)s] | %(name)s | FUNC: (%(filename)s).%(funcName)s(%(lineno)d) | %(message)s",
+        datefmt='%Y-%m-%d %H:%M:%S',
+        handlers=[
+            logging.FileHandler(f"Loging.log"),
+            logging.StreamHandler()])
     match configuration['orderBookScrapper']["currency"]:
         case "BTC":
             _currency = Currency.BITCOIN
@@ -358,8 +361,9 @@ async def f():
 
     derLoop = asyncio.new_event_loop()
     instruments_list = await scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
+
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
-                                  instruments_listed=['BTC-PERPETUAL'], loopB=derLoop)
+                                  instruments_listed=instruments_list, loopB=derLoop)
     deribitWorker.start()
 
     th = threading.Thread(target=derLoop.run_forever)

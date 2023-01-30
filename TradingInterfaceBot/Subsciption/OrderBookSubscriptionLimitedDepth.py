@@ -35,9 +35,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         super(OrderBookSubscriptionCONSTANT, self).__init__(scrapper=scrapper)
         self.number_of_columns = self.depth * 4 + 3
 
-        self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
-                                                                   self.scrapper.configuration["record_system"][
-                                                                       "instrumentNameToIdMapFile"])
+        self.instrument_name_instrument_id_map = self.scrapper.instrument_name_instrument_id_map
 
     def _place_here_tables_names_and_creation_requests(self):
         self.tables_names = [f"TABLE_DEPTH_{self.depth}"]
@@ -112,9 +110,6 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             logging.warning(f"Instrument {instrument_name} already subscribed")
 
     def create_subscription_request(self):
-        # Set heartbeat
-        self.scrapper.send_new_request(MSG_LIST.set_heartbeat(
-            self.scrapper.configuration["orderBookScrapper"]["hearth_beat_time"]))
         # Send all subscriptions
         for _instrument_name in self.scrapper.instruments_list:
             self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,

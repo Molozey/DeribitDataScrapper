@@ -13,14 +13,15 @@ hdf5:
 record_system:
     use_batches_to_record: True
     number_of_tmp_tables: 5
-    size_of_tmp_batch_table: 40
+    size_of_tmp_batch_table: 2
     instrumentNameToIdMapFile: "InstrumentNameToIdMap.json"
 
     clean_database_at_startup: True
 
 orderBookScrapper:
-    scrapper_body: [OrderBook, Trades]
-    depth: 10
+#    scrapper_body: [OrderBook, Trades]
+    scrapper_body: [Trades]
+    depth: 1
     test_net: False
     currency: BTC
     enable_traceback: False
@@ -35,7 +36,7 @@ orderBookScrapper:
 
     database_daemon: mysql
 
-    add_extra_instruments: []
+    add_extra_instruments: ["BTC-PERPETUAL"]
     # Need to be true if you need to select maturities by configuration file.
     use_configuration_to_select_maturities: False
     maturities_configuration_path: "test_DEC23_configuration.yaml"

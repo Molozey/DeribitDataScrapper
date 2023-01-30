@@ -1,5 +1,7 @@
 import warnings
 
+import AvailableCurrencies
+
 
 def hello_message() -> dict:
     _msg = \
@@ -91,4 +93,30 @@ def unsubscribe_all() -> dict:
 
             }
         }
+    return _msg
+
+
+def make_trades_subscription_request_by_currency(currency: AvailableCurrencies.Currency,
+                                                 kind="option",
+                                                 interval="100ms"):
+    print(currency.currency)
+    _msg = \
+        {"jsonrpc": "2.0",
+         "method": "public/subscribe",
+         "id": 42,
+         "params": {
+             "channels": [f"trades.{kind}.{currency.currency}.{interval}"]}
+         }
+    return _msg
+
+
+def make_trades_subscription_request_by_instrument(instrument_name: str,
+                                                   interval="100ms"):
+    _msg = \
+        {"jsonrpc": "2.0",
+         "method": "public/subscribe",
+         "id": 42,
+         "params": {
+             "channels": [f"trades.{instrument_name}.{interval}"]}
+         }
     return _msg

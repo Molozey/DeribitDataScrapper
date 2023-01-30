@@ -5,15 +5,13 @@ def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
     REQUEST += \
     """
 (
-    record_id       int auto_increment,
-    timestamp       int   null,
-    trade_id        int   null,
-    price           float null,
-    instrument_name TEXT  null,
-    direction       TEXT  null,
-    amount          float null,
-    constraint table_name_pk
-        primary key (record_id)
+    CHANGE_ID       bigint not null auto_increment primary key,
+    TIMESTAMP_VALUE       bigint   null,
+    TRADE_ID        bigint   null,
+    PRICE           float null,
+    NAME_INSTRUMENT blob  null,
+    DIRECTION       blob  null,
+    AMOUNT          float null
 );
 """
     return REQUEST

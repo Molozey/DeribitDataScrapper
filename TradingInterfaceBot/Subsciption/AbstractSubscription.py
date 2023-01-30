@@ -64,8 +64,8 @@ class AbstractSubscription(ABC):
         pass
 
     async def process_response_from_server(self, response: dict):
-        # TODO: remove it after test
-        # _r_sl = random.randint(0, 4)
+        # # TODO: remove it after test
+        # _r_sl = random.randint(10, 20)
         # if _r_sl != 0:
         #     await asyncio.sleep(_r_sl)
         _res = await self._process_response(response=response)
