@@ -13,14 +13,22 @@ hdf5:
 record_system:
     use_batches_to_record: True
     number_of_tmp_tables: 5
-    size_of_tmp_batch_table: 2
+    size_of_tmp_batch_table: 1
     instrumentNameToIdMapFile: "InstrumentNameToIdMap.json"
 
     clean_database_at_startup: True
 
+user_data:
+    test_net:
+        client_id: "W6-2Gwvq"
+        client_secret: "W9VQRlL7bIdc59DK2s7YrhqHTvw8k2U86nq_Tedsvfc"
+    production:
+        client_id: None
+        client_secret: None
+
 orderBookScrapper:
-    scrapper_body: [OrderBook, Trades]
-#    scrapper_body: [Trades]
+#    scrapper_body: [OrderBook, Trades, OwnOrderChange]
+    scrapper_body: [OwnOrderChange]
     depth: 10
     test_net: True
     currency: BTC

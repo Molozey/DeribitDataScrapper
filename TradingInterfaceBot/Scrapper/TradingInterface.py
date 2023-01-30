@@ -21,6 +21,7 @@ from TradingInterfaceBot.SyncLib.AvailableRequests import get_ticker_by_instrume
 from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
 from TradingInterfaceBot.Subsciption.OrderBookSubscriptionLimitedDepth import OrderBookSubscriptionCONSTANT
 from TradingInterfaceBot.Subsciption.TradesSubscription import TradesSubscription
+from TradingInterfaceBot.Subsciption.OwnOrderUpdate import OwnOrdersSubscription
 from TradingInterfaceBot.Strategy.BasicStrategy import BaseStrategy
 from TradingInterfaceBot.Strategy.AbstractStrategy import AbstractStrategy
 
@@ -98,7 +99,8 @@ def validate_configuration_file(configuration_path: str) -> dict:
     if type(cfg["orderBookScrapper"]["add_extra_instruments"]) != list:
         raise TypeError("Invalid type for scrapper configuration")
     print(cfg["orderBookScrapper"]["scrapper_body"])
-    available_subs = list(map(lambda x: 1 if (x != "OrderBook") and (x != "Trades") and (x != "Portfolio") else 0,
+    available_subs = list(map(
+        lambda x: 1 if (x != "OrderBook") and (x != "Trades") and (x != "Portfolio") and (x != "OwnOrderChange") else 0,
                               cfg["orderBookScrapper"]["scrapper_body"]))
     if sum(available_subs) != 0:
         logging.warning("Unknown subscriptions at scrapper_body")
@@ -129,10 +131,8 @@ def subscription_map(scrapper, conf: dict) -> dict[str, AbstractSubscription]:
         elif sub == "Portfolio":
             loop.stop()
             raise NotImplementedError
-        elif sub == "OrderChange":
-            loop.stop()
-            raise NotImplementedError
-
+        elif sub == "OwnOrderChange":
+            res_dict["OwnOrderChange"]: OwnOrdersSubscription = OwnOrdersSubscription(scrapper=scrapper)
     return res_dict
     # match conf["orderBookScrapper"]["scrapper_body"]:
     #     case ["OrderBook"]:
@@ -177,6 +177,12 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                                            loop=scrapper.loop)
                     result_netting[subscription_type] = database
                     subscription_type.plug_in_record_system(database=database)
+                elif action == "OwnOrderChange":
+                    database = MySqlDaemon(configuration_path=scrapper.configuration_path,
+                                           subscription_type=subscription_type,
+                                           loop=scrapper.loop)
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
 
         case "hdf5":
             for action, subscription_type in scrapper.subscriptions_objects.items():
@@ -197,6 +203,12 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                     subscription_type.plug_in_record_system(database=database)
                     time.sleep(1)
                 elif action == "Trades":
+                    database = MySqlDaemon(configuration_path=scrapper.configuration_path,
+                                           subscription_type=subscription_type,
+                                           loop=scrapper.loop)
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+                elif action == "OwnOrderChange":
                     database = MySqlDaemon(configuration_path=scrapper.configuration_path,
                                            subscription_type=subscription_type,
                                            loop=scrapper.loop)

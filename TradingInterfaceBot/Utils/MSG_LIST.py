@@ -120,3 +120,28 @@ def make_trades_subscription_request_by_instrument(instrument_name: str,
              "channels": [f"trades.{instrument_name}.{interval}"]}
          }
     return _msg
+
+
+def make_user_orders_subscription_request_by_instrument(instrument_name: str):
+    _msg = \
+        {"jsonrpc": "2.0",
+         "method": "private/subscribe",
+         "id": 42,
+         "params": {
+             "channels": [f"user.orders.{instrument_name}.raw"]}
+         }
+    return _msg
+
+def auth_message(client_id: str, client_secret: str):
+    _msg = \
+        {
+            "jsonrpc": "2.0",
+            "id": 9929,
+            "method": "public/auth",
+            "params": {
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret
+            }
+        }
+    return _msg
