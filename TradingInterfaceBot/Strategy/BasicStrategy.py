@@ -113,6 +113,7 @@ class BaseStrategy(AbstractStrategy):
             # print("SEND CANCELL CAUSED BY TIME FOR")
             # pprint.pprint(order)
             if order.order_exist_time > order.order_border_time:
+                logging.info(f"{order.order_type.deribit_name} ORDER NEED TO BE CANCELED CAUSE LIFE EXPIRATION")
                 self.cancel_order(order_id=order.order_id)
                 pass
 
@@ -125,9 +126,8 @@ class BaseStrategy(AbstractStrategy):
         # If no limit
         if self.order_pipeline['LimitOrder'] is None:
             # Open Limit
-            # print("Place limit")
-            # self.place_order(order_side="buy", instrument_name='BTC-PERPETUAL', amount=10,
-            #                  order_type=OrderType.LIMIT, order_tag='none', order_price=21000)
+            self.place_order(order_side="buy", instrument_name='BTC-PERPETUAL', amount=10,
+                             order_type=OrderType.LIMIT, order_tag='none', order_price=21000)
             pass
 
     def place_order(self, order_side: str, instrument_name: str, amount: int,
