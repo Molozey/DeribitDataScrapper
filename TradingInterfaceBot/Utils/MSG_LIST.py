@@ -145,3 +145,37 @@ def auth_message(client_id: str, client_secret: str):
             }
         }
     return _msg
+
+
+def order_request(order_side: str, instrument_name: str, amount: int,
+                  order_type: str, order_tag: str = 'defaultTag', order_price=None):
+
+    _msg = \
+        {
+            "jsonrpc": "2.0",
+            "id": 5275,
+            "method": f"private/{order_side}",
+            "params": {
+                "instrument_name": instrument_name,
+                "amount": amount,
+                "type": order_type,
+                "label": order_tag
+            }
+        }
+    if order_type == "limit":
+        _msg["params"]["price"] = order_price
+
+    return _msg
+
+
+def cancel_order_request(order_id: int) -> dict:
+    _msg = \
+        {
+            "jsonrpc": "2.0",
+            "id": 4214,
+            "method": "private/cancel",
+            "params": {
+                "order_id": f"{order_id}"
+            }
+        }
+    return _msg

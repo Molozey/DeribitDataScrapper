@@ -30,7 +30,7 @@ class TickerNode:
         if wait_parameter > ping_time:
             wait_parameter = ping_time / 2
         self.ping_time = ping_time * 1_000
-        self.last_ping_time = 0
+        self.last_ping_time = time() * 1_000
 
         self.ticker_wait_time = wait_parameter
 
@@ -51,7 +51,6 @@ class TickerNode:
     async def _ticker_worker(self):
         while True:
             if time() * 1_000 - self.last_ping_time >= self.ping_time:
-                print("Ping")
                 self.last_ping_time = time() * 1_000
                 asyncio.run_coroutine_threadsafe(
                     coro=self.connected_strategy.on_tick_update(callback={"time": self.last_ping_time}),

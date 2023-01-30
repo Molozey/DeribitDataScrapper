@@ -25,6 +25,8 @@ from TradingInterfaceBot.Subsciption.OwnOrderUpdate import OwnOrdersSubscription
 from TradingInterfaceBot.Strategy.BasicStrategy import BaseStrategy
 from TradingInterfaceBot.Strategy.AbstractStrategy import AbstractStrategy
 
+from TradingInterfaceBot.Strategy.TickerNode import TickerNode
+
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
 
@@ -311,6 +313,7 @@ class DeribitClient(Thread, WebSocketApp):
             for action, sub in self.subscriptions_objects.items():
                 asyncio.run_coroutine_threadsafe(sub.process_response_from_server(response=response),
                                                  loop=self.loop)
+
     def _process_callback(self, response):
         logging.info(response)
         pass
@@ -410,6 +413,12 @@ async def f():
     baseStrategy.connect_data_provider(data_provider=deribitWorker)
 
     deribitWorker.add_strategy(baseStrategy)
+    # Add tickerNode
+    ticker_node = TickerNode(ping_time=5)
+    ticker_node.connect_strategy(plug_strategy=baseStrategy)
+    ticker_node.run_ticker_node()
+
+    print("Ge next")
 
     deribitWorker.start()
 

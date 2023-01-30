@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
-
+from TradingInterfaceBot.Strategy.Utils.Order import OrderStructure
 
 if TYPE_CHECKING:
     from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient
@@ -11,6 +11,8 @@ else:
 
 class AbstractStrategy(ABC):
     data_provider: scrapper_type
+    open_orders: dict[int, OrderStructure] = dict()
+    all_orders: dict[int, OrderStructure] = dict()
 
     def connect_data_provider(self, data_provider: scrapper_type):
         self.data_provider = data_provider
