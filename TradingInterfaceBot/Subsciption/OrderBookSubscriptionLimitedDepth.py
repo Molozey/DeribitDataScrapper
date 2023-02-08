@@ -1,10 +1,9 @@
-import asyncio
 
 from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription, flatten
-from TradingInterfaceBot.Utils import MSG_LIST
-from TradingInterfaceBot.DataBase.mysqlRecording.cleanUpRequestsLimited import \
-    REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
-from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AutoIncrementDict
+
+from TradingInterfaceBot.Utils import *
+from TradingInterfaceBot.Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
+
 
 from numpy import ndarray
 from functools import partial
@@ -23,8 +22,6 @@ else:
 
 class OrderBookSubscriptionCONSTANT(AbstractSubscription):
     tables_names = ["TABLE_DEPTH_{}"]
-
-    instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
 
     def __init__(self, scrapper: scrapper_typing, order_book_depth: int):
         self.depth: int = order_book_depth

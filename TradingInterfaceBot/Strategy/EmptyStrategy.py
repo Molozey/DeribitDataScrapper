@@ -1,12 +1,7 @@
-import logging
-import pprint
-import time
 from typing import Optional
 
 from TradingInterfaceBot.Strategy.AbstractStrategy import AbstractStrategy
-from TradingInterfaceBot.Strategy.Utils.Order import OrderStructure, OrderType, \
-    convert_deribit_order_type_to_structure, convert_deribit_order_status_to_structure, OrderState
-from TradingInterfaceBot.Utils import MSG_LIST
+from TradingInterfaceBot.Strategy.Utils.Order import OrderStructure, OrderType
 
 
 class EmptyStrategy(AbstractStrategy):

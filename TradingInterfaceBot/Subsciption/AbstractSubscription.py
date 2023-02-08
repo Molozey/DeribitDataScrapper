@@ -1,10 +1,8 @@
-import asyncio
 from abc import ABC, abstractmethod
-import random
 from typing import List, TYPE_CHECKING
+
 from numpy import ndarray
 from pandas import DataFrame
-
 
 if TYPE_CHECKING:
     from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient
@@ -19,11 +17,6 @@ else:
 # Block with developing module | START
 import yaml
 import sys
-
-with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
-    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
-del _file
-# Block with developing module | END
 
 
 def flatten(list_of_lists):
@@ -43,6 +36,7 @@ class AbstractSubscription(ABC):
     def __init__(self, scrapper: scrapper_typing):
         self.scrapper = scrapper
         self._place_here_tables_names_and_creation_requests()
+        self.developConfiguration = scrapper.developConfiguration
 
     def plug_in_record_system(self, database: database_typing):
         self.database = database

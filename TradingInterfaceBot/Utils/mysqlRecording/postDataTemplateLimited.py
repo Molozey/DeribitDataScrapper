@@ -1,5 +1,4 @@
 from pandas import DataFrame
-import numba as nb
 import numpy as np
 
 INSERT_MULTIPLE_DATA_HEADER_TEMPLATE: str = """INSERT INTO {} ("""

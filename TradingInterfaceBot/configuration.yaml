@@ -1,6 +1,7 @@
 mysql:
     host: localhost
     user: root
+    password: password
     database: DeribitOrderBook
     use_bathes_to_record: False
 
@@ -27,8 +28,8 @@ user_data:
         client_secret: None
 
 orderBookScrapper:
-#    scrapper_body: [OrderBook, Trades, OwnOrderChange]
-    scrapper_body: [OwnOrderChange]
+    scrapper_body: [OrderBook, Trades, OwnOrderChange]
+#    scrapper_body: [OrderBook]
     depth: 10
     test_net: True
     currency: BTC

@@ -4,8 +4,7 @@ from numpy import ndarray
 from functools import partial
 from pandas import DataFrame
 
-from TradingInterfaceBot.DataBase.mysqlRecording.cleanUpRequestsLimited import \
-    REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
+from TradingInterfaceBot.Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
 
 
 class NullSub(AbstractSubscription):

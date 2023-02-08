@@ -13,11 +13,6 @@ import sys
 import os
 from pandas import HDFStore
 
-with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
-    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
-del _file
-# Block with developing module | END
-
 
 class HDF5Daemon(AbstractDataManager):
     """

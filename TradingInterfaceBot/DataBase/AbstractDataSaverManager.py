@@ -8,16 +8,11 @@ import logging
 import json
 import numpy as np
 
-from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
+from TradingInterfaceBot.Subsciption import AbstractSubscription
 
 # Block with developing module | START
 import yaml
 import sys
-
-with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
-    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
-del _file
-# Block with developing module | END
 
 
 class AutoIncrementDict(dict):
@@ -83,6 +78,7 @@ class AbstractDataManager(ABC):
         with open(config_path, "r") as ymlfile:
             self.cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
+        self.developConfiguration = subscription_type.scrapper.developConfiguration
         self.subscription_type = subscription_type
 
         # Download instrument hashMap
@@ -135,7 +131,7 @@ class AbstractDataManager(ABC):
             self.circular_batch_tables[self.batch_currently_selected_table].iloc[self.batch_mutable_pointer] = update_line
             self.batch_mutable_pointer += 1
             if self.batch_mutable_pointer >= self.batch_size_of_table:
-                if developConfiguration["DATA_MANAGER"]["SHOW_WHEN_DATA_TRANSFERS"]:
+                if self.developConfiguration["DATA_MANAGER"]["SHOW_WHEN_DATA_TRANSFERS"]:
                     print("Transfer data:\n", self.circular_batch_tables[self.batch_currently_selected_table], "\n")
                     print(f"Pointer In Table: ({self.batch_mutable_pointer}) | Pointer Out Table: ({self.batch_currently_selected_table})")
                     print("=====" * 20)
@@ -155,7 +151,7 @@ class AbstractDataManager(ABC):
                     self.batch_mutable_pointer] = update_object
                 self.batch_mutable_pointer += 1
                 if self.batch_mutable_pointer >= self.batch_size_of_table:
-                    if developConfiguration["DATA_MANAGER"]["SHOW_WHEN_DATA_TRANSFERS"]:
+                    if self.developConfiguration["DATA_MANAGER"]["SHOW_WHEN_DATA_TRANSFERS"]:
                         print("Transfer data:\n", self.circular_batch_tables[self.batch_currently_selected_table], "\n")
                         print(
                             f"Pointer In Table: ({self.batch_mutable_pointer}) | Pointer Out Table: ({self.batch_currently_selected_table})")
