@@ -92,6 +92,7 @@ class AbstractDataManager(ABC):
 
         # Check if all structure and content of record system is correct
         self.async_loop = loop
+
         asyncio.run_coroutine_threadsafe(self._connect_to_database(), self.async_loop)
         asyncio.run_coroutine_threadsafe(self._validate_existing_of_database_structure(), self.async_loop)
         # Create tmp_storages

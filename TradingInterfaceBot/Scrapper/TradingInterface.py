@@ -23,6 +23,7 @@ from TradingInterfaceBot.Subsciption.OrderBookSubscriptionLimitedDepth import Or
 from TradingInterfaceBot.Subsciption.TradesSubscription import TradesSubscription
 from TradingInterfaceBot.Subsciption.OwnOrderUpdate import OwnOrdersSubscription
 from TradingInterfaceBot.Strategy.BasicStrategy import BaseStrategy
+from TradingInterfaceBot.Strategy.EmptyStrategy import EmptyStrategy
 from TradingInterfaceBot.Strategy.AbstractStrategy import AbstractStrategy
 
 from TradingInterfaceBot.Strategy.TickerNode import TickerNode

@@ -10,7 +10,7 @@ def REQUEST_TO_CREATE_OWN_ORDERS_TABLE(table_name: str):
         CHANGE_ID       bigint not null auto_increment primary key,
         CREATION_TIMESTAMP       bigint   null,
         LAST_UPDATE_TIMESTAMP    bigint   null,
-        NAME_INSTRUMENT blob  null,
+        NAME_INSTRUMENT bigint  null,
         ORDER_TYPE blob null,
         ORDER_STATE blob null,
         ORDER_ID    bigint null,
