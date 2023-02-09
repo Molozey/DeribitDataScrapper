@@ -16,6 +16,7 @@ from TradingInterfaceBot.Subsciption import *
 from TradingInterfaceBot.Strategy import *
 
 from TradingInterfaceBot.SyncLib.AvailableRequests import get_ticker_by_instrument_request
+from ScrapperWithPreSelectedMaturities import scrap_available_instruments_by_extended_config
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
@@ -394,7 +395,10 @@ async def start_scrapper(configuration_path=None):
             raise ValueError("Unknown currency")
 
     derLoop = asyncio.new_event_loop()
-    instruments_list = await scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
+    if not configuration["use_configuration_to_select_maturities"]:
+        instruments_list = await scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
+    else:
+        instruments_list = scrap_available_instruments_by_extended_config(currency=_currency, cfg=configuration['orderBookScrapper'])
 
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
                                   instruments_listed=instruments_list, loopB=derLoop)

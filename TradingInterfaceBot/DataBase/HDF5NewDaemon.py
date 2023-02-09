@@ -1,17 +1,12 @@
 import asyncio
-
-from pandas import DataFrame
+from pandas import DataFrame, HDFStore
 
 from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager
 from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
+
 from typing import Optional
 import logging
-
-# Block with developing module | START
-import yaml
-import sys
 import os
-from pandas import HDFStore
 
 
 class HDF5Daemon(AbstractDataManager):

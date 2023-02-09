@@ -1,26 +1,15 @@
 import logging
-import time
 import warnings
-from OrderBookScrapper.Utils.AvailableCurrencies import Currency
-from OrderBookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from OrderBookScrapper.Subsciption.OrderBookSubscriptionLimitedDepth import AbstractSubscription, \
-    OrderBookSubscriptionCONSTANT
-from OrderBookScrapper.Scrapper.DeribitClient import DeribitClient, validate_configuration_file
 
-# Block with developing module | START
 import yaml
-import sys
 
-with open(sys.path[1] + "/OrderBookScrapper/developerConfiguration.yaml", "r") as _file:
-    developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
-del _file
-# Block with developing module | END
+from TradingInterfaceBot.Utils import Currency
 
 
-def scrap_available_instruments(currency: Currency, cfg):
-    from OrderBookScrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request
-    from OrderBookScrapper.Utils.AvailableInstrumentType import InstrumentType
-    from OrderBookScrapper.SyncLib.Scrapper import send_request
+def scrap_available_instruments_by_extended_config(currency: Currency, cfg):
+    from TradingInterfaceBot.SyncLib.AvailableRequests import get_instruments_by_currency_request
+    from TradingInterfaceBot.Utils import InstrumentType, get_ticker_by_instrument_request
+    from TradingInterfaceBot.SyncLib.Scrapper import send_request
     import pandas as pd
     import numpy as np
     make_subscriptions_list = send_request(get_instruments_by_currency_request(currency=currency,
@@ -91,29 +80,3 @@ def scrap_available_instruments(currency: Currency, cfg):
         print("Selected Instruments")
         print(total_instrument_list)
         return total_instrument_list
-
-
-def subscription_map(scrapper, conf: dict) -> AbstractSubscription:
-    match conf["orderBookScrapper"]["scrapper_body"]:
-        case "OrderBook":
-            return OrderBookSubscriptionCONSTANT(scrapper=scrapper, order_book_depth=conf["orderBookScrapper"]["depth"])
-        case _:
-            raise NotImplementedError
-
-if __name__ == '__main__':
-    configuration = validate_configuration_file("../configuration.yaml")
-    match configuration['orderBookScrapper']["currency"]:
-        case "BTC":
-            _currency = Currency.BITCOIN
-        case "ETH":
-            _currency = Currency.ETHER
-        case _:
-            raise ValueError("Unknown currency")
-
-    instruments_list = scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
-
-    deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml", instruments_listed=instruments_list)
-    deribitWorker.start()
-    # Very important time sleep. I spend smth around 3 hours to understand why my connection
-    # is closed when i try to place new request :(
-    time.sleep(1)

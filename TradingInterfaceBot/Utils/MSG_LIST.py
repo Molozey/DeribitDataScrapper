@@ -179,3 +179,15 @@ def cancel_order_request(order_id: int) -> dict:
             }
         }
     return _msg
+
+
+def get_ticker_by_instrument_request(instrument_request: str) -> dict:
+    _msg = {
+            "jsonrpc": "2.0",
+            "id": 8106,
+            "method": "public/ticker",
+            "params": {
+                "instrument_name": f"{instrument_request}"
+            }
+        }
+    return _msg

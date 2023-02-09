@@ -1,9 +1,6 @@
 def REQUEST_TO_CREATE_OWN_ORDERS_TABLE(table_name: str):
     HEADER = "create table {}".format(table_name)
     REQUEST = HEADER
-    columns = ["CHANGE_ID", "CREATION_TIMESTAMP", "LAST_UPDATE_TIMESTAMP", "NAME_INSTRUMENT", "ORDER_TYPE",
-               "ORDER_STATE", "ORDER_ID", "FILLED_AMOUNT", "COMMISSION", "AVERAGE_PRICE", "PRICE",
-               "DIRECTION", "AMOUNT"]
     REQUEST += \
         """
     (

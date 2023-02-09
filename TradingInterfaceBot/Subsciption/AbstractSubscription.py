@@ -15,8 +15,6 @@ else:
     database_typing = object
 
 # Block with developing module | START
-import yaml
-import sys
 
 
 def flatten(list_of_lists):

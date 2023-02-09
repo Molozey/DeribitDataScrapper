@@ -10,9 +10,7 @@ import numpy as np
 
 from TradingInterfaceBot.Subsciption import AbstractSubscription
 
-# Block with developing module | START
 import yaml
-import sys
 
 
 class AutoIncrementDict(dict):
@@ -89,6 +87,10 @@ class AutoIncrementDict(dict):
 
 
 class AbstractDataManager(ABC):
+    """
+    Абстрактный data manager
+    TODO: place docstring
+    """
     # instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
     circular_batch_tables: Dict[int, DataFrame]
 
