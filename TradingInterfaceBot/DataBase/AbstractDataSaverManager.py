@@ -16,7 +16,13 @@ import sys
 
 
 class AutoIncrementDict(dict):
-    pointer = -1
+    """
+    Расширение класса dict для удобной работы с кодированием названий инструментов в int type.
+    В случае если ключа в словаре не существует - добавляется запись с ключом Name-instrument и
+    value = auto_incremented int значением, после выполняется сохранение mutated
+    json в файл InstrumentNameToIdMap.json. Данный файл нельзя удалять/изменять/перемещать
+    """
+    pointer: int = -1
 
     def __init__(self, path_to_file):
         super().__init__()
@@ -30,6 +36,11 @@ class AutoIncrementDict(dict):
             self.download_cache_from_file(path_to_file=self.path_to_file)
 
     def download_cache_from_file(self, path_to_file: str):
+        """
+        Загрузка существующей карты названий инструментов.
+        :param path_to_file:
+        :return:
+        """
         # Load existed instrument map
         with open(path_to_file, "r") as _file:
             instrument_name_instrument_id_map = json.load(_file)
@@ -42,6 +53,12 @@ class AutoIncrementDict(dict):
         logging.info(f"Dict map has last pointer equals to {self.pointer}")
 
     def add_instrument(self, key, value=None):
+        """
+        Добвление нового инструмента в словарь.
+        :param key:
+        :param value:
+        :return:
+        """
         if not value:
             self.pointer += 1
             super().__setitem__(key, self.pointer)
@@ -49,11 +66,22 @@ class AutoIncrementDict(dict):
             super().__setitem__(key, value)
 
     def _save_after_adding(self):
+        """
+        Сохранение файла.
+        :return:
+        """
         with open(f'{self.path_to_file}', 'w') as fp:
             json.dump(self, fp)
         logging.info("Saved new instrument to map")
 
     def __getitem__(self, item):
+        """
+        Переопределенный метод get_item.
+        Если key exist -> возвращаем его value
+        Иначе create key with value = max_value in dict + 1 -> return value
+        :param item:
+        :return:
+        """
         if item not in self:
             self.add_instrument(item)
             self._save_after_adding()
@@ -81,11 +109,6 @@ class AbstractDataManager(ABC):
         self.developConfiguration = subscription_type.scrapper.developConfiguration
         self.subscription_type = subscription_type
 
-        # Download instrument hashMap
-        # self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
-        #                                                            self.cfg["record_system"][
-        #                                                                "instrumentNameToIdMapFile"])
-
         # Check if all structure and content of record system is correct
         self.async_loop = loop
 
@@ -112,19 +135,39 @@ class AbstractDataManager(ABC):
 
     @abstractmethod
     async def _connect_to_database(self):
+        """
+        Implement me for every unique record system.
+        Makes connection to db tmp storage/db server e.t.c
+        :return:
+        """
         pass
 
     @abstractmethod
     async def _clean_exist_database(self):
+        """
+        Implement me for every unique record system.
+        Makes clean up for exist db files e.t.c
+        :return:
+        """
         pass
 
     @abstractmethod
     async def _create_not_exist_database(self):
+        """
+        Implement me for every unique record system.
+        Creates not exist files/storages/tables e.t.c.
+        :return:
+        """
         pass
 
     async def add_data(self, update_line: ndarray):
         # TODO: Make ability to record 2D array
-
+        """
+        DON'T TOUCH ME!
+        Добавление update в batch system.
+        :param update_line:
+        :return:
+        """
         # Hardcoded solution. in case 1D array
         if len(update_line.shape) == 1:
             assert update_line.shape[0] == len(self.subscription_type.create_columns_list())
@@ -138,7 +181,7 @@ class AbstractDataManager(ABC):
 
                 self.batch_mutable_pointer = 0
                 await self._place_data_to_database(record_dataframe=
-                                             self.circular_batch_tables[self.batch_currently_selected_table])
+                                                   self.circular_batch_tables[self.batch_currently_selected_table])
                 self.batch_currently_selected_table += 1
                 if self.batch_currently_selected_table >= self.batch_number_of_tables:
                     self.batch_currently_selected_table = 0
@@ -166,6 +209,7 @@ class AbstractDataManager(ABC):
 
     def _create_tmp_batch_tables(self):
         """
+        DON'T TOUCH ME!
         Creates tmp batches for batch record system.
         :return:
         """
@@ -213,7 +257,7 @@ class AbstractDataManager(ABC):
     @abstractmethod
     async def _place_data_to_database(self, record_dataframe: DataFrame) -> int:
         """
-        Implement this for every unique method for placing data
+        Implement this for every unique db system
         :param record_dataframe:
         :return:
         """

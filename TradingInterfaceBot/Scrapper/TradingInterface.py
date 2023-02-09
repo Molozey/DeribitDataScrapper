@@ -367,6 +367,11 @@ class DeribitClient(Thread, WebSocketApp):
         time.sleep(.1)
 
     def add_strategy(self, strategy: AbstractStrategy):
+        """
+        Подключение стратегии в интерфейс
+        :param strategy:
+        :return:
+        """
         self.connected_strategy = strategy
 
 
@@ -402,8 +407,6 @@ async def start_scrapper(configuration_path=None):
     ticker_node = TickerNode(ping_time=5)
     ticker_node.connect_strategy(plug_strategy=baseStrategy)
     ticker_node.run_ticker_node()
-
-    print("Ge next")
 
     deribitWorker.start()
 

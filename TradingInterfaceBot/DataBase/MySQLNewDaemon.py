@@ -2,17 +2,13 @@ import asyncio
 import logging
 import os
 import signal
-import sys
 from datetime import datetime
 from typing import Optional
 
 import mysql.connector as connector
-# Block with developing module | START
-import yaml
 from TradingInterfaceBot.Utils import *
 from TradingInterfaceBot.DataBase.AbstractDataSaverManager import AbstractDataManager
 from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription
-
 
 
 class MySqlDaemon(AbstractDataManager):
