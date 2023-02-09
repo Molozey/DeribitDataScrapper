@@ -9,7 +9,8 @@ from OrderBookScrapper.DataBase.MySQLNewDaemon import MySqlDaemon
 from OrderBookScrapper.Utils import MSG_LIST
 from OrderBookScrapper.Utils.AvailableCurrencies import Currency
 from OrderBookScrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription, OrderBookSubscriptionCONSTANT
+from OrderBookScrapper.Subsciption.AbstractSubscription import AbstractSubscription
+from OrderBookScrapper.Subsciption.OrderBookSubscriptionLimitedDepth import OrderBookSubscriptionCONSTANT
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
