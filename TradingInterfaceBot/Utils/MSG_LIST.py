@@ -191,3 +191,15 @@ def get_ticker_by_instrument_request(instrument_request: str) -> dict:
             }
         }
     return _msg
+
+
+def get_user_portfolio_request(currency: AvailableCurrencies.Currency) -> dict:
+    _msg = \
+        {"jsonrpc": "2.0",
+         "method": "private/subscribe",
+         "id": 42,
+         "params": {
+             "channels": [f"user.portfolio.{currency.currency.lower()}"]}
+         }
+
+    return _msg

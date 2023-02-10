@@ -1,5 +1,5 @@
 
-from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription, flatten
+from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
 from TradingInterfaceBot.Utils import *
 
 from numpy import ndarray
@@ -22,19 +22,9 @@ class OwnOrdersSubscription(AbstractSubscription):
         self.tables_names = [f"User_orders_test"]
         self.tables_names_creation = list(map(REQUEST_TO_CREATE_OWN_ORDERS_TABLE, self.tables_names))
 
-        super(OwnOrdersSubscription, self).__init__(scrapper=scrapper)
+        super(OwnOrdersSubscription, self).__init__(scrapper=scrapper, request_typo=RequestTypo.PRIVATE)
         self.number_of_columns = 13
         self.instrument_name_instrument_id_map = self.scrapper.instrument_name_instrument_id_map
-
-        self.client_id = \
-            self.scrapper.configuration["user_data"]["test_net"]["client_id"] \
-                if self.scrapper.configuration["orderBookScrapper"]["test_net"] else \
-                self.scrapper.configuration["user_data"]["production"]["client_id"]
-
-        self.client_secret = \
-            self.scrapper.configuration["user_data"]["test_net"]["client_secret"] \
-                if self.scrapper.configuration["orderBookScrapper"]["test_net"] else \
-                self.scrapper.configuration["user_data"]["production"]["client_secret"]
 
     def _place_here_tables_names_and_creation_requests(self):
         self.tables_names = [f"User_orders_test"]
@@ -88,7 +78,7 @@ class OwnOrdersSubscription(AbstractSubscription):
         )
         return np.array(_full_ndarray)
 
-    def create_subscription_request(self):
+    def _create_subscription_request(self):
         self.scrapper.send_new_request(MSG_LIST.auth_message(client_id=self.client_id,
                                                              client_secret=self.client_secret))
 

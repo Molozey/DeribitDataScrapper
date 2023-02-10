@@ -14,19 +14,19 @@ else:
     scrapper_typing = object
 
 
-class TradesSubscription(AbstractSubscription):
-    tables_names = ["Trades_table_{}"]
+class UserPortfolioSubscription(AbstractSubscription):
+    tables_names = ["User_Portfolio_{}"]
 
     def __init__(self, scrapper: scrapper_typing):
-        self.tables_names = [f"Trades_table_test"]
+        self.tables_names = [f"User_Portfolio_test"]
         self.tables_names_creation = list(map(REQUEST_TO_CREATE_TRADES_TABLE, self.tables_names))
 
-        super(TradesSubscription, self).__init__(scrapper=scrapper, request_typo=RequestTypo.PUBLIC)
+        super(UserPortfolioSubscription, self).__init__(scrapper=scrapper, request_typo=RequestTypo.PRIVATE)
         self.number_of_columns = 7
         self.instrument_name_instrument_id_map = self.scrapper.instrument_name_instrument_id_map
 
     def _place_here_tables_names_and_creation_requests(self):
-        self.tables_names = [f"Trades_table_test"]
+        self.tables_names = [f"User_Portfolio_test"]
         self.tables_names_creation = list(map(REQUEST_TO_CREATE_TRADES_TABLE, self.tables_names))
 
     def create_columns_list(self) -> List[str]:
@@ -68,25 +68,17 @@ class TradesSubscription(AbstractSubscription):
         return np.array(_full_ndarray)
 
     def _create_subscription_request(self):
-        self._trades_subscription_request()
+        self._user_portfolio_changes_subscription_request()
 
     def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str) -> DataFrame:
         if 'CHANGE_ID' in record_dataframe.columns:
             return record_dataframe.iloc[:, 1:]
         return record_dataframe
 
-    def _trades_subscription_request(self):
-        for _instrument_name in self.scrapper.instruments_list:
-            subscription_message = \
-                MSG_LIST.make_trades_subscription_request_by_instrument(
-                    instrument_name=_instrument_name,
-                )
-            self.scrapper.send_new_request(request=subscription_message)
+    def _user_portfolio_changes_subscription_request(self):
+        subscription_message = \
+            MSG_LIST.get_user_portfolio_request(
+                currency=self.scrapper.client_currency,
+            )
+        self.scrapper.send_new_request(request=subscription_message)
 
-        # Extra like BTC-PERPETUAL
-        for _instrument_name in self.scrapper.configuration["orderBookScrapper"]["add_extra_instruments"]:
-            subscription_message = \
-                MSG_LIST.make_trades_subscription_request_by_instrument(
-                    instrument_name=_instrument_name,
-                )
-            self.scrapper.send_new_request(request=subscription_message)

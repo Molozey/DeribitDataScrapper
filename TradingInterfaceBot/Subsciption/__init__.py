@@ -1,4 +1,5 @@
-from .AbstractSubscription import AbstractSubscription
+from .AbstractSubscription import AbstractSubscription, RequestTypo
 from .OrderBookSubscriptionLimitedDepth import OrderBookSubscriptionCONSTANT
 from .TradesSubscription import TradesSubscription
 from .OwnOrderUpdate import OwnOrdersSubscription
+from .UserPortfolioChanges import UserPortfolioSubscription

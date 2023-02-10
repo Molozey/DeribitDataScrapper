@@ -141,8 +141,7 @@ def subscription_map(scrapper, conf: dict) -> dict[str, AbstractSubscription]:
         elif sub == "Trades":
             res_dict["Trades"]: TradesSubscription = TradesSubscription(scrapper=scrapper)
         elif sub == "Portfolio":
-            loop.stop()
-            raise NotImplementedError
+            res_dict["Portfolio"]: UserPortfolioSubscription = UserPortfolioSubscription(scrapper=scrapper)
         elif sub == "OwnOrderChange":
             res_dict["OwnOrderChange"]: OwnOrdersSubscription = OwnOrdersSubscription(scrapper=scrapper)
     return res_dict
@@ -188,6 +187,13 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                     result_netting[subscription_type] = database
                     subscription_type.plug_in_record_system(database=database)
 
+                elif action == "Portfolio":
+                    database = MySqlDaemon(configuration_path=scrapper.configuration_path,
+                                           subscription_type=subscription_type,
+                                           loop=scrapper.loop)
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+
         case "hdf5":
             for action, subscription_type in scrapper.subscriptions_objects.items():
                 if action == "OrderBook":
@@ -219,6 +225,12 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                     result_netting[subscription_type] = database
                     subscription_type.plug_in_record_system(database=database)
 
+                elif action == "Portfolio":
+                    database = HDF5Daemon(configuration_path=scrapper.configuration_path,
+                                           subscription_type=subscription_type,
+                                           loop=scrapper.loop)
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
         case _:
             logging.warning("Unknown database daemon selected")
             scrapper.database = None
@@ -242,8 +254,10 @@ class DeribitClient(Thread, WebSocketApp):
     instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
 
     connected_strategy: Optional[AbstractStrategy] = None
+    client_currency: Optional[Currency] = None
 
-    def __init__(self, cfg, cfg_path: str, loopB, instruments_listed: list = []):
+    def __init__(self, cfg, cfg_path: str, loopB, client_currency: Currency,
+                 instruments_listed: list = []):
 
         with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
             self.developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
@@ -264,6 +278,7 @@ class DeribitClient(Thread, WebSocketApp):
         self.loop = loopB
         asyncio.set_event_loop(self.loop)
 
+        self.client_currency = client_currency
         self.subscriptions_objects = subscription_map(scrapper=self, conf=self.configuration)
         self.instruments_list = instruments_listed
         self.testMode = test_mode
@@ -276,6 +291,8 @@ class DeribitClient(Thread, WebSocketApp):
         self.instrument_requested = set()
         if enable_database_record:
             self.subscription_type = net_databases_to_subscriptions(scrapper=self)
+
+        self.auth_complete: bool = False
 
     def _set_exchange(self):
         """
@@ -400,7 +417,8 @@ async def start_scrapper(configuration_path=None):
         instruments_list = scrap_available_instruments_by_extended_config(currency=_currency, cfg=configuration['orderBookScrapper'])
 
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
-                                  instruments_listed=instruments_list, loopB=derLoop)
+                                  instruments_listed=instruments_list, loopB=derLoop,
+                                  client_currency=_currency)
 
     baseStrategy = EmptyStrategy()
     baseStrategy.connect_data_provider(data_provider=deribitWorker)

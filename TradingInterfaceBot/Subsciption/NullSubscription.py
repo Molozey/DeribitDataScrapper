@@ -24,7 +24,7 @@ class NullSub(AbstractSubscription):
         columns[1] = "UNKNOWN_TABLE"
         return columns
 
-    def create_subscription_request(self) -> str:
+    def _create_subscription_request(self) -> str:
         pass
 
     def _process_response(self, response: dict):

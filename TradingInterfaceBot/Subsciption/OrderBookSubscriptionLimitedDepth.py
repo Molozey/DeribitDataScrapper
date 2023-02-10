@@ -1,5 +1,5 @@
 
-from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription, flatten
+from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
 
 from TradingInterfaceBot.Utils import *
 from TradingInterfaceBot.Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
@@ -29,7 +29,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         self.tables_names_creation = list(map(partial(REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT,
                                                       depth_size=self.depth), self.tables_names))
 
-        super(OrderBookSubscriptionCONSTANT, self).__init__(scrapper=scrapper)
+        super(OrderBookSubscriptionCONSTANT, self).__init__(scrapper=scrapper, request_typo=RequestTypo.PUBLIC)
         self.number_of_columns = self.depth * 4 + 3
 
         self.instrument_name_instrument_id_map = self.scrapper.instrument_name_instrument_id_map
@@ -107,7 +107,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         else:
             logging.warning(f"Instrument {instrument_name} already subscribed")
 
-    def create_subscription_request(self):
+    def _create_subscription_request(self):
         # Send all subscriptions
         for _instrument_name in self.scrapper.instruments_list:
             self.make_new_subscribe_constant_depth_book(instrument_name=_instrument_name,

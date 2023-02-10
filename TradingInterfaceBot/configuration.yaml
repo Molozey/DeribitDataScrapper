@@ -28,8 +28,8 @@ user_data:
         client_secret: None
 
 orderBookScrapper:
-    scrapper_body: [OrderBook, Trades, OwnOrderChange]
-#    scrapper_body: [OrderBook]
+#    scrapper_body: [OrderBook, Trades, OwnOrderChange, Portfolio]
+    scrapper_body: [Portfolio]
     depth: 10
     test_net: True
     currency: BTC
