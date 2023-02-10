@@ -100,7 +100,6 @@ class OwnOrdersSubscription(AbstractSubscription):
         return record_dataframe
 
     def _user_orders_change_subscription_request(self):
-        # TODO for _instrument_name in self.scrapper.instruments_list:
         for _instrument_name in self.scrapper.instruments_list:
             subscription_message = \
                 MSG_LIST.make_user_orders_subscription_request_by_instrument(

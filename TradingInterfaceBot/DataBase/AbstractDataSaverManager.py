@@ -227,7 +227,6 @@ class AbstractDataManager(ABC):
             self.batch_number_of_tables = self.cfg["record_system"]["number_of_tmp_tables"]
             self.batch_size_of_table = self.cfg["record_system"]["size_of_tmp_batch_table"]
 
-            # TODO: remove depth size. Change to number of columns
             _local = np.zeros(shape=(self.cfg["record_system"]["size_of_tmp_batch_table"],
                                      self.subscription_type.number_of_columns))
             _local[:] = np.NaN
@@ -246,8 +245,6 @@ class AbstractDataManager(ABC):
         else:
             self.batch_number_of_tables = 1
             self.batch_size_of_table = 1
-            # TODO: remove depth size. Change to number of columns
-            # _local = np.zeros(shape=(1, self.depth_size * 4 + 3))
             _local = np.zeros(shape=(1, self.subscription_type.number_of_columns))
             _local[:] = np.NaN
             # Create tmp tables

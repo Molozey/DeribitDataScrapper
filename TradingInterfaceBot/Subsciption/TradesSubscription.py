@@ -76,7 +76,6 @@ class TradesSubscription(AbstractSubscription):
         return record_dataframe
 
     def _trades_subscription_request(self):
-        # TODO for _instrument_name in self.scrapper.instruments_list:
         for _instrument_name in self.scrapper.instruments_list:
             subscription_message = \
                 MSG_LIST.make_trades_subscription_request_by_instrument(

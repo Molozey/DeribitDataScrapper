@@ -325,7 +325,6 @@ class DeribitClient(Thread, WebSocketApp):
         """
         response = json.loads(message)
         self._process_callback(response)
-        # TODO: Create executor function to make code more readable.
         if 'method' in response:
             # Answer to heartbeat request
             if response['method'] == 'heartbeat':
