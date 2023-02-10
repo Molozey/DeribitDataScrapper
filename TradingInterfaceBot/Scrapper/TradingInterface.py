@@ -395,7 +395,7 @@ async def start_scrapper(configuration_path=None):
             raise ValueError("Unknown currency")
 
     derLoop = asyncio.new_event_loop()
-    if not configuration["use_configuration_to_select_maturities"]:
+    if not configuration["orderBookScrapper"]["use_configuration_to_select_maturities"]:
         instruments_list = await scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
     else:
         instruments_list = scrap_available_instruments_by_extended_config(currency=_currency, cfg=configuration['orderBookScrapper'])

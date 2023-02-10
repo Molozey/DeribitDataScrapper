@@ -1,6 +1,6 @@
 import warnings
 
-import AvailableCurrencies
+import TradingInterfaceBot.Utils.AvailableCurrencies as AvailableCurrencies
 
 
 def hello_message() -> dict:
