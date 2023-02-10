@@ -92,14 +92,14 @@ class OwnOrdersSubscription(AbstractSubscription):
         self.scrapper.send_new_request(MSG_LIST.auth_message(client_id=self.client_id,
                                                              client_secret=self.client_secret))
 
-        self._trades_subscription_request()
+        self._user_orders_change_subscription_request()
 
     def _record_to_daemon_database_pipeline(self, record_dataframe: DataFrame, tag_of_data: str) -> DataFrame:
         if 'CHANGE_ID' in record_dataframe.columns:
             return record_dataframe.iloc[:, 1:]
         return record_dataframe
 
-    def _trades_subscription_request(self):
+    def _user_orders_change_subscription_request(self):
         # TODO for _instrument_name in self.scrapper.instruments_list:
         for _instrument_name in self.scrapper.instruments_list:
             subscription_message = \

@@ -26,6 +26,14 @@ def flatten(list_of_lists):
 
 
 class AbstractSubscription(ABC):
+    """
+    Класс абстрактной подписки Deribit. (см. https://docs.deribit.com/#subscriptions)
+    При имплементации необходимо определить названия таблиц где будут храниться данные.
+    Также следует определить запрос который отправляется на Deribit для запроса подписки.
+    Следует определить поведение подписки на приходящий response от сервера
+    (note: deribitScrapper не выполняет предварительной фильтрации ответов,
+    и все пришедшие данные крутит через все подписки)
+    """
     tables_names: List[str]
     tables_names_creation: List[str]
     number_of_columns: int
@@ -45,14 +53,28 @@ class AbstractSubscription(ABC):
 
     @abstractmethod
     def create_columns_list(self) -> list[str]:
+        """
+        Возвращает список из колонок в БД.
+        :return:
+        """
         pass
 
     @abstractmethod
     async def create_subscription_request(self) -> str:
+        """
+        Запрос для "заказа" подписки
+        :return:
+        """
         pass
 
     @abstractmethod
     async def _process_response(self, response: dict):
+        """
+        Определение реакции подписки на пришедший ответ от deribit сервера. Должен фильтровать запрос
+        (на соответствие response рассматриваемой подписки)
+        :param response:
+        :return:
+        """
         pass
 
     async def process_response_from_server(self, response: dict):
@@ -65,6 +87,11 @@ class AbstractSubscription(ABC):
 
     @abstractmethod
     def extract_data_from_response(self, input_response: dict) -> ndarray:
+        """
+        Конвертация ответа от сервера в ndarray со значениями для записи в БД.
+        :param input_response:
+        :return:
+        """
         pass
 
     @abstractmethod

@@ -11,7 +11,8 @@ import os
 
 class HDF5Daemon(AbstractDataManager):
     """
-    Daemon for MySQL record type.
+    Daemon for HDF5 record type.
+    TODO: insert docstring
     """
     connection: HDFStore = None
     database_cursor = None

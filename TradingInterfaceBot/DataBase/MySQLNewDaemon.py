@@ -14,6 +14,7 @@ from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscri
 class MySqlDaemon(AbstractDataManager):
     """
     Daemon for MySQL record type.
+    TODO: insert docstring
     """
     connection: connector.connection.MySQLConnection
     database_cursor: connector.connection.MySQLCursor

@@ -67,7 +67,6 @@ class TradesSubscription(AbstractSubscription):
             )
         return np.array(_full_ndarray)
 
-
     def create_subscription_request(self):
         self._trades_subscription_request()
 

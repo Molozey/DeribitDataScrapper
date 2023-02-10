@@ -88,7 +88,10 @@ class AutoIncrementDict(dict):
 
 class AbstractDataManager(ABC):
     """
-    Абстрактный data manager
+    Абстрактный data manager. Внутри реализована система батчей записи.
+    Также настроен pipeline подключения, валидации, очистки.
+    Все новые способы записи данных должны наследоваться от этого класса.
+    Методы класса являются асинхронными, для возможности уменьшения времени записи в дальнейшем.
     TODO: place docstring
     """
     # instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
