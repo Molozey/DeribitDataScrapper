@@ -71,3 +71,26 @@ def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: in
     REQUEST += LOWER_HEADER
 
     return REQUEST
+
+
+def REQUEST_TO_CREATE_USER_PORTFOLIO_TABLE(table_name: str):
+    HEADER = "create table {}".format(table_name)
+    REQUEST = HEADER
+    REQUEST += \
+        """
+    (
+        CHANGE_ID       bigint not null auto_increment primary key,
+        CREATION_TIMESTAMP       bigint   null,
+        TOTAL_PL    float   null,
+        MARGIN_BALANCE float  null,
+        MAINTENANCE_MARGIN float null,
+        INITIAL_MARGIN float null,
+        ESTIMATED_LIQUIDATION_RATIO    float null,
+        EQUITY   float null,
+        DELTA_TOTAL  float null,
+        BALANCE float null,
+        AVAILABLE_WITHDRAWAL_FUNDS   float null,
+        AVAILABLE_FUNDS       float  null
+    );
+    """
+    return REQUEST

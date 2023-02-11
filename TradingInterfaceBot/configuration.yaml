@@ -35,7 +35,7 @@ orderBookScrapper:
     currency: BTC
     enable_traceback: False
     enable_database_record: True
-    clean_database: True
+    clean_database: False
     hearth_beat_time: 60
     group_in_limited_order_book: none
     raise_error_at_synthetic: False
@@ -43,7 +43,7 @@ orderBookScrapper:
 
     select_all_order_book: True
 
-    database_daemon: hdf5
+    database_daemon: mysql
 
     add_extra_instruments: ["BTC-PERPETUAL"]
     # Need to be true if you need to select maturities by configuration file.

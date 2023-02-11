@@ -1,3 +1,5 @@
+import time
+
 from TradingInterfaceBot.Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
 from TradingInterfaceBot.Utils import *
 
@@ -19,18 +21,20 @@ class UserPortfolioSubscription(AbstractSubscription):
 
     def __init__(self, scrapper: scrapper_typing):
         self.tables_names = [f"User_Portfolio_test"]
-        self.tables_names_creation = list(map(REQUEST_TO_CREATE_TRADES_TABLE, self.tables_names))
+        self.tables_names_creation = list(map(REQUEST_TO_CREATE_USER_PORTFOLIO_TABLE, self.tables_names))
 
         super(UserPortfolioSubscription, self).__init__(scrapper=scrapper, request_typo=RequestTypo.PRIVATE)
-        self.number_of_columns = 7
+        self.number_of_columns = 12
         self.instrument_name_instrument_id_map = self.scrapper.instrument_name_instrument_id_map
 
     def _place_here_tables_names_and_creation_requests(self):
         self.tables_names = [f"User_Portfolio_test"]
-        self.tables_names_creation = list(map(REQUEST_TO_CREATE_TRADES_TABLE, self.tables_names))
+        self.tables_names_creation = list(map(REQUEST_TO_CREATE_USER_PORTFOLIO_TABLE, self.tables_names))
 
     def create_columns_list(self) -> List[str]:
-        columns = ["CHANGE_ID", "TIMESTAMP_VALUE", "TRADE_ID", "PRICE", "NAME_INSTRUMENT", "DIRECTION", "AMOUNT"]
+        columns = ["CHANGE_ID", "CREATION_TIMESTAMP", "TOTAL_PL", "MARGIN_BALANCE", "MAINTENANCE_MARGIN",
+                   "INITIAL_MARGIN", "ESTIMATED_LIQUIDATION_RATIO", "EQUITY", "DELTA_TOTAL",
+                   "BALANCE", "AVAILABLE_WITHDRAWAL_FUNDS", "AVAILABLE_FUNDS"]
         columns = flatten(columns)
         return columns
 
@@ -40,7 +44,7 @@ class UserPortfolioSubscription(AbstractSubscription):
             # ORDER BOOK processing. For constant book depth
             if 'params' in response:
                 if 'channel' in response['params']:
-                    if 'trades' in response['params']['channel']:
+                    if 'portfolio' in response['params']['channel']:
                         if self.scrapper.connected_strategy is not None:
                             await self.scrapper.connected_strategy.on_trade_update(callback=response)
 
@@ -51,21 +55,25 @@ class UserPortfolioSubscription(AbstractSubscription):
                             return 1
 
     def extract_data_from_response(self, input_response: dict) -> ndarray:
-        _full_ndarray = []
-        for data_object in input_response['params']['data']:
-            _change_id = 666
+        _data_obj = input_response["params"]["data"]
 
-            _timestamp = data_object['timestamp']
-            _instrument_name = self.instrument_name_instrument_id_map[
-                data_object['instrument_name']]
-            _trade_id = data_object['trade_id']
-            _price = data_object["price"]
-            _direction = 1 if data_object["direction"] == "buy" else -1
-            _amount = data_object["amount"]
-            _full_ndarray.append(
-                [_change_id, _timestamp, _trade_id, _price, _instrument_name, _direction, _amount]
-            )
-        return np.array(_full_ndarray)
+        _change_id = 666
+        _timestamp = int(time.time_ns() / 1_000_000)
+        _total_pnl = _data_obj["total_pl"]
+        _margin_balance = _data_obj["margin_balance"]
+        _maintenance_margin = _data_obj["maintenance_margin"]
+        _initial_margin = _data_obj["initial_margin"]
+        _estimated_liquidation_ratio = _data_obj["estimated_liquidation_ratio"]
+        _equity = _data_obj["equity"]
+        _delta_total = _data_obj["delta_total"]
+        _balance = _data_obj["balance"]
+        _available_withdrawal_funds = _data_obj["available_withdrawal_funds"]
+        _available_funds = _data_obj["available_funds"]
+
+        _ret_arr = [_change_id, _timestamp, _total_pnl, _margin_balance, _maintenance_margin,
+                    _initial_margin, _estimated_liquidation_ratio, _equity, _delta_total,
+                    _balance, _available_withdrawal_funds, _available_funds]
+        return np.array(_ret_arr)
 
     def _create_subscription_request(self):
         self._user_portfolio_changes_subscription_request()
