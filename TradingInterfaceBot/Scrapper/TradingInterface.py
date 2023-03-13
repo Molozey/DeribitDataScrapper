@@ -414,20 +414,20 @@ async def start_scrapper(configuration_path=None):
     if not configuration["orderBookScrapper"]["use_configuration_to_select_maturities"]:
         instruments_list = await scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
     else:
-        instruments_list = scrap_available_instruments_by_extended_config(currency=_currency, cfg=configuration['orderBookScrapper'])
+        instruments_list = await scrap_available_instruments_by_extended_config(currency=_currency, cfg=configuration['orderBookScrapper'])
 
     deribitWorker = DeribitClient(cfg=configuration, cfg_path="../configuration.yaml",
                                   instruments_listed=instruments_list, loopB=derLoop,
                                   client_currency=_currency)
 
-    baseStrategy = EmptyStrategy()
-    baseStrategy.connect_data_provider(data_provider=deribitWorker)
+    # baseStrategy = EmptyStrategy()
+    # baseStrategy.connect_data_provider(data_provider=deribitWorker)
 
-    deribitWorker.add_strategy(baseStrategy)
+    # deribitWorker.add_strategy(baseStrategy)
     # Add tickerNode
-    ticker_node = TickerNode(ping_time=5)
-    ticker_node.connect_strategy(plug_strategy=baseStrategy)
-    ticker_node.run_ticker_node()
+    # ticker_node = TickerNode(ping_time=5)
+    # ticker_node.connect_strategy(plug_strategy=baseStrategy)
+    # ticker_node.run_ticker_node()
 
     deribitWorker.start()
 
