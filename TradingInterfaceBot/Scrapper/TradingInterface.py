@@ -373,8 +373,13 @@ class DeribitClient(Thread, WebSocketApp):
 
         # validation requests for instrument manager
         if 'result' in response:
-            for dict_obj in response['result']:
-                asyncio.run_coroutine_threadsafe(self.instrument_manager.process_validation(dict_obj), self.loop)
+            # Cut subs
+            if 'method' not in response:
+                # Cut auth messages
+                if 'token_type' not in response['result']:
+                    if response['result'] != 'ok':
+                        for dict_obj in response['result']:
+                            asyncio.run_coroutine_threadsafe(self.instrument_manager.process_validation(dict_obj), self.loop)
 
     def _process_callback(self, response):
         logging.info(response)

@@ -1,5 +1,6 @@
 # Class with instrument manager
 import asyncio
+import logging
 from threading import Thread
 
 from .AbstractInstrument import AbstractInstrument
@@ -62,13 +63,15 @@ class InstrumentManager(Thread):
         self.initialize_instruments(self.interface.instruments_list)
 
     def initialize_instruments(self, instrument_names: List[str]):
-        print(f"{instrument_names=}")
         for instrument in instrument_names:
             params = {
                 "instrument_name": f"{instrument}"
             }
-            print("Send request block")
-            self.interface.send_block_sync_request(params)
+            instrument_data = self.interface.send_block_sync_request(params,
+                                                                     method='get_position',
+                                                                     _private='private')
+            # TODO: what we need to take Amount (in USD) or Value (in BTC)
+            _cold_start_position = instrument_data["result"]["size"]
             self.managed_instruments[instrument] = \
                 AbstractInstrument(
                     interface=self.interface,
@@ -76,14 +79,18 @@ class InstrumentManager(Thread):
                     trades_buffer_size=self.configuration["OrderManager"]["BufferSizeForTrades"],
                     order_book_changes_buffer_size=self.configuration["OrderManager"]["BufferSizeForOrderBook"],
                     user_trades_buffer_size=self.configuration["OrderManager"]["BufferSizeForUserTrades"],
+                    cold_start_user_position=_cold_start_position
                 )
 
     async def process_validation(self, callback: dict):
         # Process positions
         if all(key in callback for key in self._position_keys):
             instrument_name = callback["instrument_name"]
-            print(self.managed_instruments[instrument_name])
-        pass
+
+            # Mismatch with sizes. TODO: what i should do if wrong?
+            if self.managed_instruments[instrument_name] != callback["size"]:
+                logging.error(f"Instrument {instrument_name} has mismatch in sizes | Recorded = {self.managed_instruments[instrument_name].user_position} | Real (Deribit Info) = {callback['size']}")
+                self.managed_instruments[instrument_name].user_position = callback['size']
 
     # TODO: implement
     async def validate_positions(self):
@@ -94,7 +101,7 @@ class InstrumentManager(Thread):
         :return:
         """
         while True:
-            print("Call validation")
+            print("===" * 5 + "Call validation" + "===" * 5)
             await asyncio.sleep(self.configuration["OrderManager"]["validation_time"])
             self.interface.send_new_request(
                 get_positions_request(Currency.BITCOIN, "future")

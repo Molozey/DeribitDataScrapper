@@ -61,14 +61,15 @@ class AbstractInstrument(ABC):
 
     def __init__(self, interface: interface_type,
                  instrument_name: str, trades_buffer_size: int, order_book_changes_buffer_size: int,
-                 user_trades_buffer_size: int):
+                 user_trades_buffer_size: int,
+                 cold_start_user_position: float = 0.0):
         self.interface = interface
         self.instrument_name = instrument_name
         self.last_trades = CircularBuffer(size=trades_buffer_size)
         self.last_order_book_changes = CircularBuffer(size=order_book_changes_buffer_size)
 
         # User info
-        self.user_position = 0
+        self.user_position = cold_start_user_position
         self.user_last_trades = CircularBuffer(size=user_trades_buffer_size)
 
     def place_last_trade(self, trade_price: float, trade_amount: float, trade_time: float = None):
