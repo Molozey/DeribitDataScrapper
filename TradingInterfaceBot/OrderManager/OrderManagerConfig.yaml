@@ -4,4 +4,4 @@ OrderManager:
 
     BufferSizeForUserTrades: 10
 
-    validation_time: 1 # in sec
+    validation_time: 10 # in sec

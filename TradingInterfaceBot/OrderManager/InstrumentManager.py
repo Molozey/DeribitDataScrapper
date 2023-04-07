@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, List, Dict, Final
 import yaml
 from pprint import pprint
 
-from TradingInterfaceBot.Utils import ConfigRoot, get_positions_request, Currency, auth_message
+from TradingInterfaceBot.Utils import ConfigRoot, get_positions_request, Currency, auth_message, \
+    get_instrument_position_request
+
 if TYPE_CHECKING:
     from TradingInterfaceBot.Strategy import AbstractStrategy
     from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient
@@ -44,8 +46,6 @@ class InstrumentManager(Thread):
         else:
             raise ValueError('Wrong config source at InstrumentManager')
 
-        asyncio.run_coroutine_threadsafe(self.validate_positions(), self.async_loop)
-        self.initialize_instruments(self.interface.instruments_list)
         self.client_id = \
             self.interface.configuration["user_data"]["test_net"]["client_id"] \
                 if self.interface.configuration["orderBookScrapper"]["test_net"] else \
@@ -58,9 +58,17 @@ class InstrumentManager(Thread):
 
         self.interface.send_new_request(auth_message(client_id=self.client_id,
                                                     client_secret=self.client_secret))
+        asyncio.run_coroutine_threadsafe(self.validate_positions(), self.async_loop)
+        self.initialize_instruments(self.interface.instruments_list)
 
     def initialize_instruments(self, instrument_names: List[str]):
+        print(f"{instrument_names=}")
         for instrument in instrument_names:
+            params = {
+                "instrument_name": f"{instrument}"
+            }
+            print("Send request block")
+            self.interface.send_block_sync_request(params)
             self.managed_instruments[instrument] = \
                 AbstractInstrument(
                     interface=self.interface,

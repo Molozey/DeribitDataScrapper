@@ -217,3 +217,16 @@ def get_positions_request(currency: AvailableCurrencies.Currency, kind= "future"
             }
         }
     return msg
+
+
+def get_instrument_position_request(instrument_name: str):
+    msg = \
+        {
+            "jsonrpc": "2.0",
+            "id": 404,
+            "method": "private/get_position",
+            "params": {
+                "instrument_name": f"{instrument_name}"
+            }
+        }
+    return msg

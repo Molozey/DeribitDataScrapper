@@ -1,8 +1,8 @@
 # Old Deribit API. With it's endpoints we can get historical data from last 5 years.
 
 import requests
-from OrderBookScrapper.Utils.AvailableCurrencies import Currency
-from OrderBookScrapper.Utils.AvailableInstruments import Instrument
+from TradingInterfaceBot.Utils.AvailableCurrencies import Currency
+from TradingInterfaceBot.Utils.AvailableInstruments import Instrument
 from pprint import pprint
 import pandas as pd
 from tqdm import tqdm
@@ -40,6 +40,8 @@ class DeribitConnectionOld:
         additional = "get_last_trades_by_currency"
         pprint(self.call_api_without_key(additional=additional, query=query))
 
+    def get_instrument_position(self, instrument_name: str):
+        query = {''}
     def get_instrument_last_prices(self, instrument: Instrument | str, number_of_last_trades: int, number_of_requests=10_00,
                                    date_of_start_loading_data=None):
         """

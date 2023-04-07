@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pprint
 import sys
 import threading
 
@@ -306,7 +307,7 @@ class DeribitClient(Thread, WebSocketApp):
         self.instrument_manager = InstrumentManager(self, self.configuration,
                                                     self.loop,
                                                     ConfigRoot.DIRECTORY)
-        self.instrument_manager.initialize_instruments(self.instruments_list)
+        # self.instrument_manager.initialize_instruments(self.instruments_list)
 
 
     def _set_exchange(self):
@@ -355,7 +356,6 @@ class DeribitClient(Thread, WebSocketApp):
         :param message:
         :return:
         """
-        print(self.instruments_list)
         response = json.loads(message)
         self._process_callback(response)
 
@@ -406,6 +406,44 @@ class DeribitClient(Thread, WebSocketApp):
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
         # TODO: do it better. Unsync.
         time.sleep(.1)
+
+    def send_block_sync_request(self, params: dict, method="get_position", _private='private') -> dict:
+        """
+        Используется для инициализации начальных позиций в инструментах. Блокируется до получения ответа
+        :param params:
+        :param method
+        :param _private
+        :return: dict
+        """
+        import requests
+        if self.testMode:
+            _hist = 'test.'
+        else:
+            _hist = ''
+        session = requests.Session()
+        if _private == 'private':
+            client_id = \
+                self.configuration["user_data"]["test_net"]["client_id"] \
+                    if self.configuration["orderBookScrapper"]["test_net"] else \
+                    self.configuration["user_data"]["production"]["client_id"]
+
+            client_secret = \
+                self.configuration["user_data"]["test_net"]["client_secret"] \
+                    if self.configuration["orderBookScrapper"]["test_net"] else \
+                    self.configuration["user_data"]["production"]["client_secret"]
+
+            auth_params = {
+                "grant_type": "client_credentials",
+                "client_id": client_id,
+                "client_secret": client_secret,
+            }
+            auth = session.get(f"https://{_hist}deribit.com/api/v2/public/auth", params=auth_params)
+            session.headers.update(
+                {"Authorization": f"Bearer {auth.json()['result']['access_token']}"}
+            )
+
+        response = session.get(f"https://{_hist}deribit.com/api/v2/{_private}/{method}", params=params)
+        return response.json()
 
     def add_strategy(self, strategy: AbstractStrategy):
         """
