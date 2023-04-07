@@ -29,8 +29,8 @@ user_data:
 
 orderBookScrapper:
 #    scrapper_body: [OrderBook, Trades, OwnOrderChange, Portfolio]
-    scrapper_body: [Trades]
-    depth: 10
+    scrapper_body: [OrderBook, Trades]
+    depth: 1
     test_net: True
     currency: BTC
     enable_traceback: False

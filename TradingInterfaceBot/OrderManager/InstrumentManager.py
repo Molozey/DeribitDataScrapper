@@ -86,13 +86,12 @@ class InstrumentManager(Thread):
         # Process positions
         if all(key in callback for key in self._position_keys):
             instrument_name = callback["instrument_name"]
-
+            print(callback)
             # Mismatch with sizes. TODO: what i should do if wrong?
             if self.managed_instruments[instrument_name] != callback["size"]:
                 logging.error(f"Instrument {instrument_name} has mismatch in sizes | Recorded = {self.managed_instruments[instrument_name].user_position} | Real (Deribit Info) = {callback['size']}")
                 self.managed_instruments[instrument_name].user_position = callback['size']
 
-    # TODO: implement
     async def validate_positions(self):
         """
         Валидирует записанные позиции по инструментам.
@@ -101,8 +100,8 @@ class InstrumentManager(Thread):
         :return:
         """
         while True:
-            print("===" * 5 + "Call validation" + "===" * 5)
             await asyncio.sleep(self.configuration["OrderManager"]["validation_time"])
+            print("===" * 5 + "Call validation" + "===" * 5)
             self.interface.send_new_request(
                 get_positions_request(Currency.BITCOIN, "future")
             )
@@ -116,13 +115,36 @@ class InstrumentManager(Thread):
                 get_positions_request(Currency.ETHER, "option")
             )
 
-    def update_order_book(self, callback):
-        pass
+    async def update_order_book(self, callback):
+        _order_book_change = callback['params']['data']
 
-    def update_trade(self, callback):
-        pass
+        _bid_prices = []
+        _bid_amounts = []
+        for _bid in _order_book_change["bids"]:
+            _bid_prices.append(_bid[0])
+            _bid_amounts.append(_bid[1])
 
-    def update_user_trade(self, callback):
+        _ask_prices = []
+        _ask_amounts = []
+        for _ask in _order_book_change["asks"]:
+            _ask_prices.append(_ask[0])
+            _ask_amounts.append(_ask[1])
+
+        self.managed_instruments[_order_book_change['instrument_name']].place_order_book_change(
+            ask_prices=_ask_prices, ask_amounts=_ask_amounts,
+            bid_prices=_bid_prices, bid_amounts=_bid_amounts,
+            time=_order_book_change["timestamp"]
+        )
+        logging.info(f"Update orderBook at Instrument: {self.managed_instruments[_order_book_change['instrument_name']]}")
+
+    async def update_trade(self, callback):
+        for trade_object in callback['params']['data']:
+            _amount = trade_object['amount'] if trade_object['direction'] == 'buy' else - trade_object['amount']
+            self.managed_instruments[trade_object['instrument_name']].place_last_trade(
+                trade_price=trade_object['price'], trade_amount=_amount, trade_time=trade_object['timestamp'])
+            logging.info(f"Update trade at Instrument: {self.managed_instruments[trade_object['instrument_name']]}")
+
+    async def update_user_trade(self, callback):
         pass
 
     def process_callback(self, callback):
@@ -133,6 +155,7 @@ if __name__ == '__main__':
     with open("/Users/molozey/Documents/DeribitDataScrapper/TradingInterfaceBot/configuration.yaml", "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
-    manager = InstrumentManager({}, cfg, ConfigRoot.DIRECTORY)
+    loop = asyncio.new_event_loop()
+    manager = InstrumentManager({}, cfg, work_loop=asyncio.new_event_loop(), use_config=ConfigRoot.DIRECTORY)
     pprint(manager.managed_instruments)
     manager.async_loop.run_forever()

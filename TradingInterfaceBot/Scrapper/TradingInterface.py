@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-import pprint
 import sys
 import threading
+import requests
 
 import nest_asyncio
 nest_asyncio.apply()
@@ -33,7 +33,7 @@ async def scrap_available_instruments(currency: Currency, cfg):
     """
     Функция для получения всех доступных опционов для какой-либо валюты.
     Предлагается ввод пользователем конкретного maturity
-    :param currency: Валюта. BTC\ETH\SOL
+    :param currency: Валюта. BTC | ETH | SOL
     :param cfg: файл конфигурации бота
     :return: LIST[Instrument-name]
     """
@@ -254,7 +254,8 @@ class DeribitClient(Thread, WebSocketApp):
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
     loop: asyncio.unix_events.SelectorEventLoop
     instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
-    instrument_manager: InstrumentManager
+
+    instrument_manager: InstrumentManager = None
 
     connected_strategy: Optional[AbstractStrategy] = None
     client_currency: Optional[Currency] = None
@@ -392,12 +393,14 @@ class DeribitClient(Thread, WebSocketApp):
         :param websocket:
         :return:
         """
+        # Add Instrument Manager
         self.add_instrument_manager()
         # Set heartbeat
         self.send_new_request(MSG_LIST.set_heartbeat(
             self.configuration["orderBookScrapper"]["hearth_beat_time"]))
 
         logging.info("Client start his work")
+        # Execute initial subscription's request pipelines
         for action, sub in self.subscriptions_objects.items():
             sub.create_subscription_request()
 
@@ -414,18 +417,19 @@ class DeribitClient(Thread, WebSocketApp):
 
     def send_block_sync_request(self, params: dict, method="get_position", _private='private') -> dict:
         """
-        Используется для инициализации начальных позиций в инструментах. Блокируется до получения ответа
+        Послать блокирующий запрос. Реализована аутентификация.
+        Пример: Используется для инициализации начальных позиций в инструментах. Блокируется до получения ответа
         :param params:
         :param method
         :param _private
         :return: dict
         """
-        import requests
         if self.testMode:
             _hist = 'test.'
         else:
             _hist = ''
         session = requests.Session()
+        # В случае приватного запроса сначала необходимо добавить в header токен.
         if _private == 'private':
             client_id = \
                 self.configuration["user_data"]["test_net"]["client_id"] \
@@ -487,7 +491,6 @@ async def start_scrapper(configuration_path=None):
                                   instruments_listed=instruments_list, loopB=derLoop,
                                   client_currency=_currency)
 
-    print(deribitWorker.instruments_list)
     # baseStrategy = EmptyStrategy()
     # baseStrategy.connect_data_provider(data_provider=deribitWorker)
 
