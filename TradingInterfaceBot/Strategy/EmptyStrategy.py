@@ -1,7 +1,7 @@
 from typing import Optional
 
 from TradingInterfaceBot.Strategy.AbstractStrategy import AbstractStrategy
-from TradingInterfaceBot.Strategy.Utils.Order import OrderStructure, OrderType
+from TradingInterfaceBot.Utils import OrderStructure, OrderType
 
 
 class EmptyStrategy(AbstractStrategy):

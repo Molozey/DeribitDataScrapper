@@ -14,6 +14,7 @@ from TradingInterfaceBot.DataBase import *
 from TradingInterfaceBot.Utils import *
 from TradingInterfaceBot.Subsciption import *
 from TradingInterfaceBot.Strategy import *
+from TradingInterfaceBot.OrderManager import InstrumentManager
 
 from TradingInterfaceBot.SyncLib.AvailableRequests import get_ticker_by_instrument_request
 from ScrapperWithPreSelectedMaturities import scrap_available_instruments_by_extended_config
@@ -252,13 +253,13 @@ class DeribitClient(Thread, WebSocketApp):
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
     loop: asyncio.unix_events.SelectorEventLoop
     instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
+    instrument_manager: InstrumentManager
 
     connected_strategy: Optional[AbstractStrategy] = None
     client_currency: Optional[Currency] = None
 
     def __init__(self, cfg, cfg_path: str, loopB, client_currency: Currency,
                  instruments_listed: list = []):
-
         with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
             self.developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
         del _file
@@ -270,6 +271,11 @@ class DeribitClient(Thread, WebSocketApp):
         enable_database_record = bool(self.configuration['orderBookScrapper']["enable_database_record"])
 
         instruments_listed = instruments_listed
+        # Extra like BTC-PERPETUAL
+        for _instrument_name in self.configuration["orderBookScrapper"]["add_extra_instruments"]:
+            if _instrument_name not in instruments_listed:
+                instruments_listed.append(_instrument_name)
+
         self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
                                                                    self.configuration["record_system"][
                                                                        "instrumentNameToIdMapFile"])
@@ -293,6 +299,15 @@ class DeribitClient(Thread, WebSocketApp):
             self.subscription_type = net_databases_to_subscriptions(scrapper=self)
 
         self.auth_complete: bool = False
+
+        # self.add_instrument_manager()
+
+    def add_instrument_manager(self):
+        self.instrument_manager = InstrumentManager(self, self.configuration,
+                                                    self.loop,
+                                                    ConfigRoot.DIRECTORY)
+        self.instrument_manager.initialize_instruments(self.instruments_list)
+
 
     def _set_exchange(self):
         """
@@ -340,8 +355,11 @@ class DeribitClient(Thread, WebSocketApp):
         :param message:
         :return:
         """
+        print(self.instruments_list)
         response = json.loads(message)
         self._process_callback(response)
+
+        # subscriptions
         if 'method' in response:
             # Answer to heartbeat request
             if response['method'] == 'heartbeat':
@@ -352,6 +370,11 @@ class DeribitClient(Thread, WebSocketApp):
             for action, sub in self.subscriptions_objects.items():
                 asyncio.run_coroutine_threadsafe(sub.process_response_from_server(response=response),
                                                  loop=self.loop)
+
+        # validation requests for instrument manager
+        if 'result' in response:
+            for dict_obj in response['result']:
+                asyncio.run_coroutine_threadsafe(self.instrument_manager.process_validation(dict_obj), self.loop)
 
     def _process_callback(self, response):
         logging.info(response)
@@ -364,6 +387,7 @@ class DeribitClient(Thread, WebSocketApp):
         :param websocket:
         :return:
         """
+        self.add_instrument_manager()
         # Set heartbeat
         self.send_new_request(MSG_LIST.set_heartbeat(
             self.configuration["orderBookScrapper"]["hearth_beat_time"]))
@@ -420,6 +444,7 @@ async def start_scrapper(configuration_path=None):
                                   instruments_listed=instruments_list, loopB=derLoop,
                                   client_currency=_currency)
 
+    print(deribitWorker.instruments_list)
     # baseStrategy = EmptyStrategy()
     # baseStrategy.connect_data_provider(data_provider=deribitWorker)
 

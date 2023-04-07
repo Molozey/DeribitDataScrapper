@@ -203,3 +203,17 @@ def get_user_portfolio_request(currency: AvailableCurrencies.Currency) -> dict:
          }
 
     return _msg
+
+
+def get_positions_request(currency: AvailableCurrencies.Currency, kind= "future"):
+    msg = \
+        {
+            "jsonrpc": "2.0",
+            "id": 2236,
+            "method": "private/get_positions",
+            "params": {
+                "currency": f"{currency.currency}",
+                "kind": f"{kind}"
+            }
+        }
+    return msg

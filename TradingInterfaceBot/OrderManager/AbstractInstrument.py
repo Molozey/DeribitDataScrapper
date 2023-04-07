@@ -56,13 +56,20 @@ class AbstractInstrument(ABC):
     last_order_book_changes: CircularBuffer[OrderBookChange]
 
     instrument_name: str
+    user_position: float
+    user_last_trades: CircularBuffer[TradeInformation]
 
     def __init__(self, interface: interface_type,
-                 instrument_name: str, trades_buffer_size: int, order_book_changes_buffer_size: int):
+                 instrument_name: str, trades_buffer_size: int, order_book_changes_buffer_size: int,
+                 user_trades_buffer_size: int):
         self.interface = interface
         self.instrument_name = instrument_name
         self.last_trades = CircularBuffer(size=trades_buffer_size)
         self.last_order_book_changes = CircularBuffer(size=order_book_changes_buffer_size)
+
+        # User info
+        self.user_position = 0
+        self.user_last_trades = CircularBuffer(size=user_trades_buffer_size)
 
     def place_last_trade(self, trade_price: float, trade_amount: float, trade_time: float = None):
         self.last_trades.record(TradeInformation(price=trade_price, amount=trade_amount, time=trade_time))
@@ -78,6 +85,16 @@ class AbstractInstrument(ABC):
     def connect_interface(self, interface: interface_type):
         self.interface = interface
 
+    def __repr__(self):
+        return str({
+            'instrument_name': self.instrument_name,
+
+            'last_orderBook_changes': self.last_order_book_changes,
+            'last_trades': self.last_trades,
+
+            'last_user_trades': self.user_last_trades,
+            'user_position': self.user_position,
+        })
 
 if __name__ == '__main__':
     pass

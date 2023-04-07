@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
-from TradingInterfaceBot.Strategy.Utils.Order import OrderStructure
+from TradingInterfaceBot.Utils import OrderStructure
 
 if TYPE_CHECKING:
     from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient

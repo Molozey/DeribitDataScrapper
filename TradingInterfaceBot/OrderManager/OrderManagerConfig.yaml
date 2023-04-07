@@ -1,3 +1,7 @@
 OrderManager:
     BufferSizeForTrades: 10
     BufferSizeForOrderBook: 10
+
+    BufferSizeForUserTrades: 10
+
+    validation_time: 1 # in sec

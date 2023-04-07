@@ -4,7 +4,8 @@ from AbstractInstrument import AbstractInstrument
 
 class MyTestCase(unittest.TestCase):
     def test_trades_appending(self):
-        test_instrument = AbstractInstrument(trades_buffer_size=3, order_book_changes_buffer_size=1)
+        test_instrument = AbstractInstrument(trades_buffer_size=3, order_book_changes_buffer_size=1,
+                                             user_trades_buffer_size=1)
         trades = [
             [1000, 1, -1],
             [2000, 23, -1],

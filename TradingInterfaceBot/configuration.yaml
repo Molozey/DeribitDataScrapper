@@ -47,6 +47,6 @@ orderBookScrapper:
 
     add_extra_instruments: ["BTC-PERPETUAL"]
     # Need to be true if you need to select maturities by configuration file.
-    use_configuration_to_select_maturities: True
+    use_configuration_to_select_maturities: False
     maturities_configuration_path: "Maturities_configuration.yaml"
 
