@@ -17,6 +17,7 @@ class OrderType(Enum):
     MARKET_LIMIT = "market_limit"
     TRAILING_STOP = "trailing_stop"
 
+
 class OrderState(Enum):
     deribit_name: str
 

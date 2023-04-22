@@ -6,10 +6,8 @@ from threading import Thread
 from .AbstractInstrument import AbstractInstrument
 from typing import TYPE_CHECKING, List, Dict, Final
 import yaml
-from pprint import pprint
 
-from TradingInterfaceBot.Utils import ConfigRoot, get_positions_request, Currency, auth_message, \
-    get_instrument_position_request
+from TradingInterfaceBot.Utils import ConfigRoot, get_positions_request, Currency, auth_message
 
 if TYPE_CHECKING:
     from TradingInterfaceBot.Strategy import AbstractStrategy
@@ -26,7 +24,9 @@ class InstrumentManager(Thread):
     interface: interface_typing
 
     _position_keys: Final = ('size_currency', 'size', 'realized_profit_loss', 'total_profit_loss')
-    def __init__(self, interface: interface_typing, interface_cfg: dict, work_loop: asyncio.unix_events.SelectorEventLoop,
+
+    def __init__(self, interface: interface_typing, interface_cfg: dict,
+                 work_loop: asyncio.unix_events.SelectorEventLoop,
                  use_config: ConfigRoot = ConfigRoot.DIRECTORY,
                  strategy_configuration: dict = None):
 
@@ -47,6 +47,7 @@ class InstrumentManager(Thread):
         else:
             raise ValueError('Wrong config source at InstrumentManager')
 
+        # Take auth data from configuration files
         self.client_id = \
             self.interface.configuration["user_data"]["test_net"]["client_id"] \
                 if self.interface.configuration["orderBookScrapper"]["test_net"] else \
@@ -57,9 +58,15 @@ class InstrumentManager(Thread):
                 if self.interface.configuration["orderBookScrapper"]["test_net"] else \
                 self.interface.configuration["user_data"]["production"]["client_secret"]
 
-        self.interface.send_new_request(auth_message(client_id=self.client_id,
-                                                    client_secret=self.client_secret))
+        # Send auth request
+        if not self.interface.auth_complete:
+            self.interface.send_new_request(auth_message(client_id=self.client_id,
+                                                         client_secret=self.client_secret))
+
+        # Run coroutine with position infinite validation task.
         asyncio.run_coroutine_threadsafe(self.validate_positions(), self.async_loop)
+
+        # Initialize all instruments
         self.initialize_instruments(self.interface.instruments_list)
 
     def initialize_instruments(self, instrument_names: List[str]):
@@ -96,7 +103,7 @@ class InstrumentManager(Thread):
         """
         Валидирует записанные позиции по инструментам.
         Вызывается раз в какой-то промежуток времени для того чтобы быть уверенным в том
-        что исполнение идет корректно
+        что исполнение идет корректно. (Позиция в абстрактном инструменте совпадает с тем, что выдает Deribit)
         :return:
         """
         while True:
@@ -116,6 +123,11 @@ class InstrumentManager(Thread):
             )
 
     async def update_order_book(self, callback):
+        """
+        В случае order book update
+        :param callback:
+        :return:
+        """
         _order_book_change = callback['params']['data']
 
         _bid_prices = []
@@ -138,6 +150,11 @@ class InstrumentManager(Thread):
         logging.info(f"Update orderBook at Instrument: {self.managed_instruments[_order_book_change['instrument_name']]}")
 
     async def update_trade(self, callback):
+        """
+        В случае нового trade (может быть user trade / может быть market trade)
+        :param callback:
+        :return:
+        """
         for trade_object in callback['params']['data']:
             _amount = trade_object['amount'] if trade_object['direction'] == 'buy' else - trade_object['amount']
             self.managed_instruments[trade_object['instrument_name']].place_last_trade(
@@ -145,17 +162,22 @@ class InstrumentManager(Thread):
             logging.info(f"Update trade at Instrument: {self.managed_instruments[trade_object['instrument_name']]}")
 
     async def update_user_trade(self, callback):
+        """
+        В случае user trade
+        :param callback:
+        :return:
+        """
         pass
 
     def process_callback(self, callback):
         pass
 
-    
+
 if __name__ == '__main__':
     with open("/Users/molozey/Documents/DeribitDataScrapper/TradingInterfaceBot/configuration.yaml", "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
-    loop = asyncio.new_event_loop()
-    manager = InstrumentManager({}, cfg, work_loop=asyncio.new_event_loop(), use_config=ConfigRoot.DIRECTORY)
-    pprint(manager.managed_instruments)
-    manager.async_loop.run_forever()
+    # loop = asyncio.new_event_loop()
+    # manager = InstrumentManager({}, cfg, work_loop=asyncio.new_event_loop(), use_config=ConfigRoot.DIRECTORY)
+    # pprint(manager.managed_instruments)
+    # manager.async_loop.run_forever()

@@ -32,3 +32,7 @@ class AbstractStrategy(ABC):
     @abstractmethod
     async def on_tick_update(self, callback: dict):
         pass
+
+    @abstractmethod
+    async def on_position_miss_match(self):
+        pass

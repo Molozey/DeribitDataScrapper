@@ -15,7 +15,7 @@ from TradingInterfaceBot.DataBase import *
 from TradingInterfaceBot.Utils import *
 from TradingInterfaceBot.Subsciption import *
 from TradingInterfaceBot.Strategy import *
-from TradingInterfaceBot.OrderManager import InstrumentManager
+from TradingInterfaceBot.InstrumentManager import InstrumentManager
 
 from TradingInterfaceBot.SyncLib.AvailableRequests import get_ticker_by_instrument_request
 from ScrapperWithPreSelectedMaturities import scrap_available_instruments_by_extended_config
@@ -261,36 +261,50 @@ class DeribitClient(Thread, WebSocketApp):
     client_currency: Optional[Currency] = None
 
     def __init__(self, cfg, cfg_path: str, loopB, client_currency: Currency,
-                 instruments_listed: list = []):
+                 instruments_listed: list = None):
+
+        if instruments_listed is None:
+            instruments_listed = []
         with open(sys.path[1] + "/TradingInterfaceBot/developerConfiguration.yaml", "r") as _file:
             self.developConfiguration = yaml.load(_file, Loader=yaml.FullLoader)
         del _file
 
+        # Load configuration
         self.configuration_path = cfg_path
         self.configuration = cfg
         test_mode = self.configuration['orderBookScrapper']["test_net"]
         enable_traceback = self.configuration['orderBookScrapper']["enable_traceback"]
         enable_database_record = bool(self.configuration['orderBookScrapper']["enable_database_record"])
 
-        instruments_listed = instruments_listed
         # Extra like BTC-PERPETUAL
         for _instrument_name in self.configuration["orderBookScrapper"]["add_extra_instruments"]:
             if _instrument_name not in instruments_listed:
                 instruments_listed.append(_instrument_name)
 
+        # Download instrument mapping
         self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
                                                                    self.configuration["record_system"][
                                                                        "instrumentNameToIdMapFile"])
 
+        # Initialize all loops and Threads
         Thread.__init__(self)
         self.loop = loopB
         asyncio.set_event_loop(self.loop)
 
+        # Set client currency
         self.client_currency = client_currency
+
+        # Make subscriptions map (OrderBook, Trades, Portfolio changes e.t.c)
         self.subscriptions_objects = subscription_map(scrapper=self, conf=self.configuration)
+
+        # Make list of instruments
         self.instruments_list = instruments_listed
+
+        # Set exchange mode
         self.testMode = test_mode
         self.exchange_version = self._set_exchange()
+
+        # Place initial local time
         self.time = datetime.now()
 
         self.websocket = None
@@ -300,6 +314,7 @@ class DeribitClient(Thread, WebSocketApp):
         if enable_database_record:
             self.subscription_type = net_databases_to_subscriptions(scrapper=self)
 
+        # Set flag for authentication validation
         self.auth_complete: bool = False
 
         # self.add_instrument_manager()

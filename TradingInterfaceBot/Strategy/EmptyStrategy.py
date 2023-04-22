@@ -30,3 +30,7 @@ class EmptyStrategy(AbstractStrategy):
 
     def cancel_order(self, order_id: int):
         pass
+
+    async def on_position_miss_match(self):
+        pass
+
