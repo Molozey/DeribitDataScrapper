@@ -62,15 +62,23 @@ class OrderManager(ABC):
                                   order_price=order_price))
 
     async def process_order_callback(self, callback: dict):
-        pass
+        await self._extract_order_callback(callback=callback)
 
     async def _extract_order_callback(self, callback: dict):
-        # Extract order tag
-        _tag = callback["params"]["data"]["label"]
-        _callback_data = callback["params"]["data"]
+        # Extract order tag for sub pipeline
+        _tag = 'none'
+        _callback_data = {}
+        if 'params' in callback:
+            _tag = callback["params"]["data"]["label"]
+            _callback_data = callback["params"]["data"]
+        elif 'result' in callback: # Extract order tag for initial pipeline
+            if 'order' in callback['result']:
+                _tag = callback['result']['order']['label']
+                _callback_data = callback["result"]["order"]
+        else:
+            raise ValueError('no callback')
         _order_id, _open_time, _price, _executed_price, _total_commission, _direction, _order_amount, _filled_amount, _last_update_time, _order_exist_time, _instrument, _order_type, _order_state = await self._extract_values_from_callback(
             _callback_data)
-
         _order = await self.collect_order_object_by_tag(order_tag=_tag)
         if type(_order) == OrderStructure:
             # Order Exist in structures
@@ -84,6 +92,9 @@ class OrderManager(ABC):
             _order.price = _price
             if _order.order_state != _order_state:
                 await self.change_order_state(order_tag=_tag, newOrderState=_order_state)
+
+            await self.client.connected_strategy.on_order_update(await self.collect_order_object_by_tag(order_tag=_tag))
+
         elif type(_order) == int:
             # Order Doesn't Exist in structures
             await self._if_order_dont_exist(
@@ -111,10 +122,11 @@ class OrderManager(ABC):
                                     last_update_time=last_update_time,
                                     order_exist_time=order_exist_time,
                                     instrument=instrument,
-                                    order_type=convert_deribit_order_type_to_structure(order_type),
-                                    order_state=convert_deribit_order_status_to_structure(order_state))
+                                    order_type=order_type,
+                                    order_state=order_state)
         # Place New order
         self.open_orders[f"{order_tag}"] = _new_order
+        await self.client.connected_strategy.on_order_creation(_new_order)
 
     async def collect_order_object_by_tag(self, order_tag: str) -> Union[OrderStructure, int]:
         """
@@ -195,3 +207,6 @@ class OrderManager(ABC):
     async def not_enough_funds(self, callback):
         # {'jsonrpc': '2.0', 'id': 5275, 'error': {'message': 'not_enough_funds', 'code': 10009}, 'usIn': 1682176942386379, 'usOut': 1682176942387152, 'usDiff': 773, 'testnet': True}
         await self.client.connected_strategy.on_not_enough_fund(callback=callback)
+
+    async def price_too_high(self, callback):
+        await self.client.connected_strategy.price_too_high(callback=callback)

@@ -377,8 +377,15 @@ class DeribitClient(Thread, WebSocketApp):
         :return:
         """
         response = json.loads(message)
-        self._process_callback(response)
         print(response)
+        self._process_callback(response)
+        # Process initial order placement
+        if 'result' in response:
+            if 'order' in response['result']:
+                if 'OwnOrderChange' in self.subscriptions_objects:
+                    asyncio.run_coroutine_threadsafe(
+                self.subscriptions_objects["OwnOrderChange"].process_response_from_server(response=response),
+                        loop=self.loop)
         # subscriptions
         if 'method' in response:
             # Answer to heartbeat request
@@ -407,14 +414,16 @@ class DeribitClient(Thread, WebSocketApp):
 
     def _process_error_callbacks(self, response: dict):
         if 'message' in response['error']:
-            match response['error']['message']:
-                case 'not_enough_funds':
-                    logging.warning(f"{response}")
-                    asyncio.run_coroutine_threadsafe(self.order_manager.not_enough_funds(callback=response),
-                                                     loop=self.loop)
-                case _:
-                    logging.error(f"Unknown error callback: | {response}")
-                    pass
+            if 'not_enough_funds' in response['error']['message']:
+                logging.warning(f"{response}")
+                asyncio.run_coroutine_threadsafe(self.order_manager.not_enough_funds(callback=response),
+                                                 loop=self.loop)
+            elif 'price_too_high' in response['error']['message']:
+                logging.warning(f"{response}")
+                asyncio.run_coroutine_threadsafe(self.order_manager.price_too_high(callback=response),
+                                                 loop=self.loop)
+            else:
+                logging.error(f"Unknown error callback: | {response}")
 
     def _process_callback(self, response):
         logging.info(response)
@@ -445,7 +454,6 @@ class DeribitClient(Thread, WebSocketApp):
         :param request:
         :return:
         """
-        print(request)
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
         # TODO: do it better. Unsync.
         time.sleep(.1)
@@ -531,10 +539,6 @@ async def start_scrapper(configuration_path=None):
     baseStrategy = EmptyStrategy()
     deribitWorker.add_strategy(baseStrategy)
 
-    # Add tickerNode
-    # ticker_node = TickerNode(ping_time=5)
-    # ticker_node.connect_strategy(plug_strategy=baseStrategy)
-    # ticker_node.run_ticker_node()
     deribitWorker.start()
     th = threading.Thread(target=derLoop.run_forever)
     th.start()
@@ -543,13 +547,21 @@ async def start_scrapper(configuration_path=None):
 
     print("Sending request to place order")
     await deribitWorker.order_manager.place_new_order(
-        instrument_name="ETH-PERPETUAL",
+        instrument_name="BTC-PERPETUAL",
         order_side=OrderSide.BUY,
-        amount=1_000,
-        order_type=OrderType.LIMIT,
-        order_price=1_700.0
+        amount=100,
+        order_type=OrderType.MARKET,
+        order_price=28_000.0
     )
 
+    await asyncio.sleep(10)
+    await deribitWorker.order_manager.place_new_order(
+        instrument_name="BTC-PERPETUAL",
+        order_side=OrderSide.BUY,
+        amount=100,
+        order_type=OrderType.LIMIT,
+        order_price=28_000.0
+    )
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

@@ -1,4 +1,4 @@
-OrderManager:
+InstrumentManager:
     BufferSizeForTrades: 10
     BufferSizeForOrderBook: 10
 

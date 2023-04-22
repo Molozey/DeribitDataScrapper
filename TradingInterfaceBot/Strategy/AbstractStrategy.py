@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING
 from TradingInterfaceBot.Utils import OrderStructure
+from TradingInterfaceBot.InstrumentManager import AbstractInstrument
 
 if TYPE_CHECKING:
     from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient
@@ -18,15 +19,15 @@ class AbstractStrategy(ABC):
         self.data_provider = data_provider
 
     @abstractmethod
-    async def on_order_book_update(self, callback: dict):
+    async def on_order_book_update(self, abstractInstrument: AbstractInstrument):
         pass
 
     @abstractmethod
-    async def on_trade_update(self, callback: dict):
+    async def on_trade_update(self, abstractInstrument: AbstractInstrument):
         pass
 
     @abstractmethod
-    async def on_order_update(self, callback: dict):
+    async def on_order_update(self, updatedOrder: OrderStructure):
         pass
 
     @abstractmethod
@@ -39,4 +40,12 @@ class AbstractStrategy(ABC):
 
     @abstractmethod
     async def on_not_enough_fund(self, callback: dict):
+        pass
+
+    @abstractmethod
+    async def on_order_creation(self, createdOrder: OrderStructure):
+        pass
+
+    @abstractmethod
+    async def price_too_high(self, callback: dict):
         pass

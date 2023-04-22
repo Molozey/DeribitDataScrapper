@@ -55,9 +55,6 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         if response['method'] == "subscription":
             # ORDER BOOK processing. For constant book depth
             if 'change' and 'type' not in response['params']['data']:
-                # Place data to strategy
-                if self.scrapper.connected_strategy is not None:
-                    await self.scrapper.connected_strategy.on_order_book_update(callback=response)
 
                 # Place data to instrument manager
                 if self.scrapper.instrument_manager is not None:

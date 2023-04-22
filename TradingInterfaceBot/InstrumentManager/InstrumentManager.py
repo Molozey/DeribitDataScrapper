@@ -36,9 +36,8 @@ class InstrumentManager(Thread):
         self.interface = interface
         self.order_book_depth = interface_cfg["orderBookScrapper"]["depth"]
         self.managed_instruments = {}
-
         if use_config == ConfigRoot.DIRECTORY:
-            cfg_path = "/".join(__file__.split('/')[:-1]) + "/" + "OrderManagerConfig.yaml"
+            cfg_path = "/".join(__file__.split('/')[:-1]) + "/" + "InstrumentManagerConfig.yaml"
             with open(cfg_path, "r") as ymlfile:
                 self.configuration = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
@@ -83,9 +82,9 @@ class InstrumentManager(Thread):
                 AbstractInstrument(
                     interface=self.interface,
                     instrument_name=instrument,
-                    trades_buffer_size=self.configuration["OrderManager"]["BufferSizeForTrades"],
-                    order_book_changes_buffer_size=self.configuration["OrderManager"]["BufferSizeForOrderBook"],
-                    user_trades_buffer_size=self.configuration["OrderManager"]["BufferSizeForUserTrades"],
+                    trades_buffer_size=self.configuration["InstrumentManager"]["BufferSizeForTrades"],
+                    order_book_changes_buffer_size=self.configuration["InstrumentManager"]["BufferSizeForOrderBook"],
+                    user_trades_buffer_size=self.configuration["InstrumentManager"]["BufferSizeForUserTrades"],
                     cold_start_user_position=_cold_start_position
                 )
 
@@ -93,7 +92,6 @@ class InstrumentManager(Thread):
         # Process positions
         if all(key in callback for key in self._position_keys):
             instrument_name = callback["instrument_name"]
-            print(callback)
             # Mismatch with sizes. TODO: what i should do if wrong?
             if self.managed_instruments[instrument_name] != callback["size"]:
                 logging.error(f"Instrument {instrument_name} has mismatch in sizes | Recorded = {self.managed_instruments[instrument_name].user_position} | Real (Deribit Info) = {callback['size']}")
@@ -108,7 +106,7 @@ class InstrumentManager(Thread):
         :return:
         """
         while True:
-            await asyncio.sleep(self.configuration["OrderManager"]["validation_time"])
+            await asyncio.sleep(self.configuration["InstrumentManager"]["validation_time"])
             print("===" * 5 + "Call validation" + "===" * 5)
             self.interface.send_new_request(
                 get_positions_request(Currency.BITCOIN, "future")
@@ -149,6 +147,7 @@ class InstrumentManager(Thread):
             time=_order_book_change["timestamp"]
         )
         logging.info(f"Update orderBook at Instrument: {self.managed_instruments[_order_book_change['instrument_name']]}")
+        await self.interface.connected_strategy.on_order_book_update(self.managed_instruments[_order_book_change['instrument_name']])
 
     async def update_trade(self, callback):
         """
@@ -161,6 +160,9 @@ class InstrumentManager(Thread):
             self.managed_instruments[trade_object['instrument_name']].place_last_trade(
                 trade_price=trade_object['price'], trade_amount=_amount, trade_time=trade_object['timestamp'])
             logging.info(f"Update trade at Instrument: {self.managed_instruments[trade_object['instrument_name']]}")
+            await self.interface.connected_strategy.on_trade_update(
+                self.managed_instruments[trade_object['instrument_name']]
+            )
 
     async def update_user_trade(self, callback):
         """
