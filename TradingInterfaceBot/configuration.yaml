@@ -29,7 +29,7 @@ user_data:
 
 orderBookScrapper:
 #    scrapper_body: [OrderBook, Trades, OwnOrderChange, Portfolio]
-    scrapper_body: [OrderBook, Trades]
+    scrapper_body: [OrderBook, Trades, Portfolio]
     depth: 1
     test_net: True
     currency: BTC

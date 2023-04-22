@@ -97,7 +97,8 @@ class InstrumentManager(Thread):
             # Mismatch with sizes. TODO: what i should do if wrong?
             if self.managed_instruments[instrument_name] != callback["size"]:
                 logging.error(f"Instrument {instrument_name} has mismatch in sizes | Recorded = {self.managed_instruments[instrument_name].user_position} | Real (Deribit Info) = {callback['size']}")
-                self.managed_instruments[instrument_name].user_position = callback['size']
+                # self.managed_instruments[instrument_name].user_position = callback['size']
+                await self.interface.connected_strategy.on_position_miss_match()
 
     async def validate_positions(self):
         """

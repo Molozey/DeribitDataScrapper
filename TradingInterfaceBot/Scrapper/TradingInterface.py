@@ -12,6 +12,7 @@ import time
 from typing import Optional, Union
 
 from TradingInterfaceBot.DataBase import *
+from TradingInterfaceBot.OrderManager import OrderManager
 from TradingInterfaceBot.Utils import *
 from TradingInterfaceBot.Subsciption import *
 from TradingInterfaceBot.Strategy import *
@@ -256,7 +257,7 @@ class DeribitClient(Thread, WebSocketApp):
     instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
 
     instrument_manager: InstrumentManager = None
-
+    order_manager: OrderManager = None
     connected_strategy: Optional[AbstractStrategy] = None
     client_currency: Optional[Currency] = None
 
@@ -325,6 +326,9 @@ class DeribitClient(Thread, WebSocketApp):
                                                     ConfigRoot.DIRECTORY)
         # self.instrument_manager.initialize_instruments(self.instruments_list)
 
+    def add_order_manager(self):
+        self.order_manager = OrderManager()
+        self.order_manager.connect_client(client=self)
 
     def _set_exchange(self):
         """
@@ -374,7 +378,7 @@ class DeribitClient(Thread, WebSocketApp):
         """
         response = json.loads(message)
         self._process_callback(response)
-
+        print(response)
         # subscriptions
         if 'method' in response:
             # Answer to heartbeat request
@@ -396,6 +400,21 @@ class DeribitClient(Thread, WebSocketApp):
                     if response['result'] != 'ok':
                         for dict_obj in response['result']:
                             asyncio.run_coroutine_threadsafe(self.instrument_manager.process_validation(dict_obj), self.loop)
+
+        # Process errors
+        if 'error' in response:
+            self._process_error_callbacks(response=response)
+
+    def _process_error_callbacks(self, response: dict):
+        if 'message' in response['error']:
+            match response['error']['message']:
+                case 'not_enough_funds':
+                    logging.warning(f"{response}")
+                    asyncio.run_coroutine_threadsafe(self.order_manager.not_enough_funds(callback=response),
+                                                     loop=self.loop)
+                case _:
+                    logging.error(f"Unknown error callback: | {response}")
+                    pass
 
     def _process_callback(self, response):
         logging.info(response)
@@ -426,6 +445,7 @@ class DeribitClient(Thread, WebSocketApp):
         :param request:
         :return:
         """
+        print(request)
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
         # TODO: do it better. Unsync.
         time.sleep(.1)
@@ -475,6 +495,7 @@ class DeribitClient(Thread, WebSocketApp):
         :param strategy:
         :return:
         """
+        strategy.connect_client(data_provider=self)
         self.connected_strategy = strategy
 
 
@@ -506,20 +527,28 @@ async def start_scrapper(configuration_path=None):
                                   instruments_listed=instruments_list, loopB=derLoop,
                                   client_currency=_currency)
 
-    # baseStrategy = EmptyStrategy()
-    # baseStrategy.connect_data_provider(data_provider=deribitWorker)
+    deribitWorker.add_order_manager()
+    baseStrategy = EmptyStrategy()
+    deribitWorker.add_strategy(baseStrategy)
 
-    # deribitWorker.add_strategy(baseStrategy)
     # Add tickerNode
     # ticker_node = TickerNode(ping_time=5)
     # ticker_node.connect_strategy(plug_strategy=baseStrategy)
     # ticker_node.run_ticker_node()
-
     deribitWorker.start()
-
     th = threading.Thread(target=derLoop.run_forever)
     th.start()
+    while not deribitWorker.auth_complete:
+        continue
 
+    print("Sending request to place order")
+    await deribitWorker.order_manager.place_new_order(
+        instrument_name="ETH-PERPETUAL",
+        order_side=OrderSide.BUY,
+        amount=1_000,
+        order_type=OrderType.LIMIT,
+        order_price=1_700.0
+    )
 
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
@@ -527,3 +556,4 @@ if __name__ == '__main__':
     loop.create_task(start_scrapper())
     loop.run_forever()
     time.sleep(1)
+

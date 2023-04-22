@@ -1,7 +1,7 @@
 import warnings
 
 import TradingInterfaceBot.Utils.AvailableCurrencies as AvailableCurrencies
-
+from .OrderStructure import OrderType, OrderSide
 
 def hello_message() -> dict:
     _msg = \
@@ -147,22 +147,23 @@ def auth_message(client_id: str, client_secret: str):
     return _msg
 
 
-def order_request(order_side: str, instrument_name: str, amount: int,
-                  order_type: str, order_tag: str = 'defaultTag', order_price=None):
+def order_request(order_side: OrderSide, instrument_name: str, amount: float,
+                  order_type: OrderType, order_tag: str, order_price=None):
 
+    _side = 'buy' if order_side == OrderSide.BUY else "sell"
     _msg = \
         {
             "jsonrpc": "2.0",
             "id": 5275,
-            "method": f"private/{order_side}",
+            "method": f"private/{_side}",
             "params": {
                 "instrument_name": instrument_name,
                 "amount": amount,
-                "type": order_type,
+                "type": order_type.deribit_name,
                 "label": order_tag
             }
         }
-    if order_type == "limit":
+    if order_type == OrderType.LIMIT:
         _msg["params"]["price"] = order_price
 
     return _msg

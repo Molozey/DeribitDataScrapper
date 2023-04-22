@@ -14,7 +14,7 @@ class AbstractStrategy(ABC):
     open_orders: dict[int, OrderStructure] = dict()
     all_orders: dict[int, OrderStructure] = dict()
 
-    def connect_data_provider(self, data_provider: scrapper_type):
+    def connect_client(self, data_provider: scrapper_type):
         self.data_provider = data_provider
 
     @abstractmethod
@@ -35,4 +35,8 @@ class AbstractStrategy(ABC):
 
     @abstractmethod
     async def on_position_miss_match(self):
+        pass
+
+    @abstractmethod
+    async def on_not_enough_fund(self, callback: dict):
         pass
