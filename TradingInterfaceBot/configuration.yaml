@@ -42,6 +42,7 @@ orderBookScrapper:
     logger_level: ERROR # WARN | INFO | ERROR
 
     select_all_order_book: True
+    only_api_orders_processing: True
 
     database_daemon: hdf5
 

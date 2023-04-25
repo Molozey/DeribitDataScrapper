@@ -255,7 +255,7 @@ class DeribitClient(Thread, WebSocketApp):
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
     loop: asyncio.unix_events.SelectorEventLoop
     instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
-
+    only_API_orders: bool = None
     instrument_manager: InstrumentManager = None
     order_manager: OrderManager = None
     connected_strategy: Optional[AbstractStrategy] = None
@@ -277,6 +277,7 @@ class DeribitClient(Thread, WebSocketApp):
         enable_traceback = self.configuration['orderBookScrapper']["enable_traceback"]
         enable_database_record = bool(self.configuration['orderBookScrapper']["enable_database_record"])
 
+        self.only_API_orders = self.configuration["orderBookScrapper"]["only_api_orders_processing"]
         # Extra like BTC-PERPETUAL
         for _instrument_name in self.configuration["orderBookScrapper"]["add_extra_instruments"]:
             if _instrument_name not in instruments_listed:

@@ -1,3 +1,4 @@
+import logging
 from abc import ABC
 from typing import Dict, TYPE_CHECKING, List, Union
 from TradingInterfaceBot.Utils import OrderStructure, OrderType, OrderState, CircularBuffer, \
@@ -24,6 +25,8 @@ class OrderManager(ABC):
 
     instrument_to_tags_map: Dict[str, List[str]]
 
+    process_only_API_orders: bool = False
+
     def __init__(self):
         self.open_orders = dict()
         self.filled_orders = dict()
@@ -41,6 +44,7 @@ class OrderManager(ABC):
 
     def connect_client(self, client: deribitClientType):
         self.client = client
+        self.process_only_API_orders = self.client.only_API_orders
 
     def _create_order_tag(self, instrument_name: str) -> str:
         _prev_tag = int(self.used_tags[-1])
@@ -71,6 +75,11 @@ class OrderManager(ABC):
         if 'params' in callback:
             _tag = callback["params"]["data"]["label"]
             _callback_data = callback["params"]["data"]
+            # CHECK CREATION BY API
+            if (not _callback_data["api"]) and self.process_only_API_orders:
+                logging.error("Order created by hand trading (by deribit.com). OrderManager will no process this right now. Need to be implemented")
+                return -1
+
         elif 'result' in callback: # Extract order tag for initial pipeline
             if 'order' in callback['result']:
                 _tag = callback['result']['order']['label']

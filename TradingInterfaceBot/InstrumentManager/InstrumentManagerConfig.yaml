@@ -4,4 +4,4 @@ InstrumentManager:
 
     BufferSizeForUserTrades: 10
 
-    validation_time: 20 # in sec
+    validation_time: 60 # in sec

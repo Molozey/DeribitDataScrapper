@@ -3,5 +3,5 @@ InstrumentManager:
     BufferSizeForOrderBook: 10
 
 StrategyConfiguration:
-    TickerNodeFrequency: 5 # Freq of timer ping
+    TickerNodeFrequency: 60 # Freq of timer ping
     TickerNodeWaitingSize: 0.1  # TODO: check optimal parameter
