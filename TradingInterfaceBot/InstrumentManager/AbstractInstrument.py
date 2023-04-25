@@ -83,6 +83,19 @@ class AbstractInstrument(ABC):
 
         self.parse_instrument_name() # Parse instrument name and extract all need info
 
+    def fill_trades_by_cold_start(self, trades_start_data: list[list]):
+        """
+
+        :param trades_start_data: Array of [Trade Price, Trade Amount, Trade Time]
+        :return:
+        """
+        for trade in trades_start_data:
+            self.last_trades.record(TradeInformation(price=trade[0], amount=trade[1], time=trade[2]))
+
+    def fill_order_book_by_cold_start(self):
+        logging.error("NotImplementedError")
+        raise NotImplementedError
+
     @property
     def instrument_strike(self):
         if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
