@@ -1,8 +1,9 @@
+import logging
 from time import time as sys_time
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Union, List, Final
-from TradingInterfaceBot.Utils import CircularBuffer
-
+from TradingInterfaceBot.Utils import CircularBuffer, InstrumentType
+from datetime import datetime, timedelta
 
 if TYPE_CHECKING:
     from TradingInterfaceBot.Scrapper.TradingInterface import DeribitClient
@@ -56,13 +57,21 @@ class AbstractInstrument(ABC):
     last_order_book_changes: CircularBuffer[OrderBookChange]
 
     instrument_name: str
+    instrument_type: InstrumentType
     user_position: float
     user_last_trades: CircularBuffer[TradeInformation]
+
+    _instrument_strike: Union[float] = None     # Only for options | futures
+    _instrument_maturity: datetime = None  # Only for options | futures
 
     def __init__(self, interface: interface_type,
                  instrument_name: str, trades_buffer_size: int, order_book_changes_buffer_size: int,
                  user_trades_buffer_size: int,
                  cold_start_user_position: float = 0.0):
+
+        self._instrument_strike = None
+        self._instrument_maturity = None
+
         self.interface = interface
         self.instrument_name = instrument_name
         self.last_trades = CircularBuffer(size=trades_buffer_size)
@@ -71,6 +80,24 @@ class AbstractInstrument(ABC):
         # User info
         self.user_position = cold_start_user_position
         self.user_last_trades = CircularBuffer(size=user_trades_buffer_size)
+
+        self.parse_instrument_name() # Parse instrument name and extract all need info
+
+    @property
+    def instrument_strike(self):
+        if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
+            return float(self._instrument_strike)
+        else:
+            logging.error("Called strike attribute for instrument without strike. Check your logic!")
+            raise ValueError(f'No strike for instrument {self.instrument_name}')
+
+    @property
+    def instrument_maturity(self):
+        if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
+            return (self._instrument_maturity - datetime.now()) / timedelta(days=365)
+        else:
+            logging.error("Called maturity attribute for instrument without maturity. Check your logic!")
+            raise ValueError(f'No maturity for instrument {self.instrument_name}')
 
     def place_last_trade(self, trade_price: float, trade_amount: float, trade_time: float = None):
         self.last_trades.record(TradeInformation(price=trade_price, amount=trade_amount, time=trade_time))
@@ -87,15 +114,67 @@ class AbstractInstrument(ABC):
         self.interface = interface
 
     def __repr__(self):
-        return str({
-            'instrument_name': self.instrument_name,
+        if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
+            return str({
+                'instrument_name': self.instrument_name,
+                'instrument_type': self.instrument_type.instrument_type,
+                'instrument_strike': self.instrument_strike,
+                'instrument_maturity': self.instrument_maturity,
 
-            'last_orderBook_changes': self.last_order_book_changes,
-            'last_trades': self.last_trades,
+                'last_orderBook_changes': self.last_order_book_changes,
+                'last_trades': self.last_trades,
 
-            'last_user_trades': self.user_last_trades,
-            'user_position': self.user_position,
-        })
+                'last_user_trades': self.user_last_trades,
+                'user_position': self.user_position,
+            })
+        else:
+            return str({
+                'instrument_name': self.instrument_name,
+                'instrument_type': self.instrument_type.instrument_type,
+                'last_orderBook_changes': self.last_order_book_changes,
+                'last_trades': self.last_trades,
+
+                'last_user_trades': self.user_last_trades,
+                'user_position': self.user_position,
+            })
+
+    def parse_instrument_name(self):
+        """
+        # TODO: no combo futures implemented.
+        :return:
+        """
+        try:
+            _maturity = None
+            _strike = None
+            _kind = InstrumentType.ASSET
+
+            split_instrument_name = self.instrument_name.split('-')
+            if split_instrument_name[-1] == 'C':
+                _kind = InstrumentType.CALL_OPTION
+                _maturity = datetime.strptime(split_instrument_name[1], '%d%b%y')
+                _strike = split_instrument_name[2]
+
+            elif split_instrument_name[-1] == 'P':
+                _kind = InstrumentType.PUT_OPTION
+                _maturity = datetime.strptime(split_instrument_name[1], '%d%b%y')
+                _strike = split_instrument_name[2]
+            else:
+                if split_instrument_name[-1] == "PERPETUAL":
+                    pass
+                else:
+                    _maturity = datetime.strptime(split_instrument_name[1], '%d%b%y')
+                    _kind = InstrumentType.FUTURE
+
+            self._instrument_maturity = _maturity
+            self._instrument_strike = _strike
+            self.instrument_type = _kind
+        except:
+            logging.error("Error while parsing instrument name")
+            raise ValueError("Error while parsing instrument name")
+
 
 if __name__ == '__main__':
-    pass
+    names = ['BTC-30JUN23-40000-P', 'BTC-30JUN23-100000-P', 'BTC-30JUN23-20000-C', 'BTC-PERPETUAL']
+    for name in names:
+        ab = AbstractInstrument(None, name, 1, 1, 1, 0)
+        print(ab)

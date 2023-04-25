@@ -39,7 +39,7 @@ orderBookScrapper:
     hearth_beat_time: 60
     group_in_limited_order_book: none
     raise_error_at_synthetic: False # False - default
-    logger_level: INFO # WARN | INFO | ERROR
+    logger_level: ERROR # WARN | INFO | ERROR
 
     select_all_order_book: True
     only_api_orders_processing: True
