@@ -378,7 +378,6 @@ class DeribitClient(Thread, WebSocketApp):
         :return:
         """
         response = json.loads(message)
-        print(response)
         self._process_callback(response)
         # Process initial order placement
         if 'result' in response:

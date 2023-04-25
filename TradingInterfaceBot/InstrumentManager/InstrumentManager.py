@@ -69,6 +69,11 @@ class InstrumentManager(Thread):
         self.initialize_instruments(self.interface.instruments_list)
 
     def initialize_instruments(self, instrument_names: List[str]):
+        """
+        Инициализация позиций всех инструментов при холодном старте интерфейса.
+        :param instrument_names:
+        :return:
+        """
         for instrument in instrument_names:
             params = {
                 "instrument_name": f"{instrument}"
@@ -123,7 +128,8 @@ class InstrumentManager(Thread):
 
     async def update_order_book(self, callback):
         """
-        В случае order book update
+        В случае order book update.
+        Фактически заносит информацию об изменении ордербука в tmp хранилища AbstractInstrument, и передает абстрактный инструмент стратегии
         :param callback:
         :return:
         """
@@ -151,7 +157,8 @@ class InstrumentManager(Thread):
 
     async def update_trade(self, callback):
         """
-        В случае нового trade (может быть user trade / может быть market trade)
+        В случае нового trade (может быть user trade / может быть market trade).
+        Фактически заносит информацию о сделке в tmp хранилища AbstractInstrument, и передает абстрактный инструмент стратегии
         :param callback:
         :return:
         """
@@ -176,6 +183,13 @@ class InstrumentManager(Thread):
         pass
 
     async def change_user_instrument_position(self, position_change: float, instrument_name: str, increment=True):
+        """
+        Изменение позиции пользователя по инструменту.
+        :param position_change:
+        :param instrument_name:
+        :param increment:
+        :return:
+        """
         if instrument_name not in self.managed_instruments:
             # No instrument with user position in instrument manager
             # TODO: process this error with strategy
@@ -189,7 +203,7 @@ class InstrumentManager(Thread):
         else:
             raise ValueError('Unknown value for increment field')
 
-        print("UPDATE AT ", self.managed_instruments[instrument_name])
+        logging.info(f"Update user position ({self.managed_instruments[instrument_name].user_position}) at instrument: ({self.managed_instruments[instrument_name].instrument_name})")
 
 
 if __name__ == '__main__':

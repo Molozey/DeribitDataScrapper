@@ -49,3 +49,7 @@ class AbstractStrategy(ABC):
     @abstractmethod
     async def price_too_high(self, callback: dict):
         pass
+
+    @abstractmethod
+    async def on_api_external_order(self, callback: dict):
+        pass

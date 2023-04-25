@@ -59,6 +59,8 @@ class EmptyStrategy(AbstractStrategy):
     async def price_too_high(self, callback: dict):
         print("==== PRICE TOO HIGH ====")
 
+    async def on_api_external_order(self, callback: dict):
+        print("==== ORDER PLACED WITHOUT API ==== ")
 
 if __name__ == '__main__':
     empty = EmptyStrategy()

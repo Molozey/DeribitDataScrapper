@@ -43,10 +43,20 @@ class OrderManager(ABC):
         print("Order Manager has been initialized")
 
     def connect_client(self, client: deribitClientType):
+        """
+        Подключение deribit интерфейса
+        :param client:
+        :return:
+        """
         self.client = client
         self.process_only_API_orders = self.client.only_API_orders
 
     def _create_order_tag(self, instrument_name: str) -> str:
+        """
+        Создание Order Tag для метчинга между ордерами deribit и хранилищами ордеров.
+        :param instrument_name:
+        :return:
+        """
         _prev_tag = int(self.used_tags[-1])
         _new_tag = _prev_tag + 1
         self.used_tags.record(_new_tag)
@@ -58,6 +68,15 @@ class OrderManager(ABC):
 
     async def place_new_order(self, instrument_name: str, order_side: OrderSide, amount: float, order_type: OrderType,
                         order_price: float = None):
+        """
+        Выставить новый ордер и подготовить заглушку в открытых ордерах.
+        :param instrument_name:
+        :param order_side:
+        :param amount:
+        :param order_type:
+        :param order_price:
+        :return:
+        """
         _order_tag = self._create_order_tag(instrument_name=instrument_name)
         self.open_orders[f"{_order_tag}"] = None
         self.client.send_new_request(
@@ -69,6 +88,12 @@ class OrderManager(ABC):
         await self._extract_order_callback(callback=callback)
 
     async def _extract_order_callback(self, callback: dict):
+        """
+        Распаковка информации об исполнении ордера из deribit callback.
+        Обрабатывает как initial time-in-time ордера (типа Market), так и изменения через подписку.
+        :param callback:
+        :return:
+        """
         # Extract order tag for sub pipeline
         _tag = 'none'
         _callback_data = {}
@@ -78,6 +103,7 @@ class OrderManager(ABC):
             # CHECK CREATION BY API
             if (not _callback_data["api"]) and self.process_only_API_orders:
                 logging.error("Order created by hand trading (by deribit.com). OrderManager will no process this right now. Need to be implemented")
+                await self.client.connected_strategy.on_api_external_order(callback)
                 return -1
 
         elif 'result' in callback: # Extract order tag for initial pipeline
@@ -111,6 +137,20 @@ class OrderManager(ABC):
                               _executed_price, _total_commission, _order_amount,
                               _filled_amount, _last_update_time, _order_state, _order_exist_time
                               ):
+        """
+        Обновление состояния существующего ордера. Перенаправляет объект ордера в стратегию.
+        :param orderStructure:
+        :param _order_tag:
+        :param _price:
+        :param _executed_price:
+        :param _total_commission:
+        :param _order_amount:
+        :param _filled_amount:
+        :param _last_update_time:
+        :param _order_state:
+        :param _order_exist_time:
+        :return:
+        """
         # Collect values for changes:
         _prev_filled = orderStructure.filled_amount
         # Change user position
@@ -134,6 +174,25 @@ class OrderManager(ABC):
                              executed_price, total_commission, direction, order_amount,
                              filled_amount, last_update_time,
                              instrument, order_type, order_state, order_exist_time):
+        """
+        Логика в случае создания нового ордера. (Ордера нет в структурах).
+        Создает ордер структуру, заносит ее в хранилища, перенаправляет новый ордер в стратегию
+        :param order_tag:
+        :param order_id:
+        :param open_time:
+        :param price:
+        :param executed_price:
+        :param total_commission:
+        :param direction:
+        :param order_amount:
+        :param filled_amount:
+        :param last_update_time:
+        :param instrument:
+        :param order_type:
+        :param order_state:
+        :param order_exist_time:
+        :return:
+        """
         _new_order = OrderStructure(order_tag=order_tag,
                                     order_id=order_id,
                                     open_time=open_time,
@@ -183,6 +242,12 @@ class OrderManager(ABC):
         return _order
 
     async def change_order_state(self, order_tag: str, newOrderState: OrderState):
+        """
+        Изменение состояния ордера. Переброс между структурами (открытые / закрытые / отмененные)
+        :param order_tag:
+        :param newOrderState:
+        :return:
+        """
         # Collect order from structures
         if order_tag in self.open_orders:
             _order = self.open_orders[f'{order_tag}']
@@ -220,6 +285,11 @@ class OrderManager(ABC):
                 raise ValueError('Unknown Order State')
 
     async def _extract_values_from_callback(self, _callback_data):
+        """
+        Вытаскивает значения из order update callback (by deribit)
+        :param _callback_data:
+        :return:
+        """
         _order_id = _callback_data['order_id']
         _open_time = _callback_data['creation_timestamp']
         _price = _callback_data['price']
@@ -239,8 +309,18 @@ class OrderManager(ABC):
                _order_exist_time, _instrument, _order_type, _order_state
 
     async def not_enough_funds(self, callback):
+        """
+        Handler ошибки в случае недостатка средств для выставления ордера. Перенаправляет ошибку в стратегию
+        :param callback:
+        :return:
+        """
         # {'jsonrpc': '2.0', 'id': 5275, 'error': {'message': 'not_enough_funds', 'code': 10009}, 'usIn': 1682176942386379, 'usOut': 1682176942387152, 'usDiff': 773, 'testnet': True}
         await self.client.connected_strategy.on_not_enough_fund(callback=callback)
 
     async def price_too_high(self, callback):
+        """
+        Handler ошибки в случае слишком высокой цены для выставления ордера. Перенаправляет ошибку в стратегию
+        :param callback:
+        :return:
+        """
         await self.client.connected_strategy.price_too_high(callback=callback)
