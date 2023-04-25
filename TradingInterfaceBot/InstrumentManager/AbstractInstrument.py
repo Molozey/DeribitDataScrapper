@@ -134,11 +134,23 @@ class AbstractInstrument(ABC):
         self.interface = interface
 
     def __repr__(self):
-        if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
+        if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.OPTION):
             return str({
                 'instrument_name': self.instrument_name,
                 'instrument_type': self.instrument_type.instrument_type,
                 'instrument_strike': self.instrument_strike,
+                'instrument_maturity': self.instrument_maturity,
+
+                'last_orderBook_changes': self.last_order_book_changes,
+                'last_trades': self.last_trades,
+
+                'last_user_trades': self.user_last_trades,
+                'user_position': self.user_position,
+            })
+        elif self.instrument_type == InstrumentType.FUTURE:
+            return str({
+                'instrument_name': self.instrument_name,
+                'instrument_type': self.instrument_type.instrument_type,
                 'instrument_maturity': self.instrument_maturity,
 
                 'last_orderBook_changes': self.last_order_book_changes,

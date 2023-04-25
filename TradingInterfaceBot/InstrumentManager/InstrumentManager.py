@@ -101,6 +101,8 @@ class InstrumentManager(Thread):
                     user_trades_buffer_size=self.configuration["InstrumentManager"]["BufferSizeForUserTrades"],
                     cold_start_user_position=_cold_start_position
                 )
+
+            # Cold Start Trades Placement
             params["count"] = self.configuration["InstrumentManager"]["BufferSizeForTrades"]
             instrument_data = self.interface.send_block_sync_request(params,
                                                                      method='get_last_trades_by_instrument',
@@ -108,6 +110,7 @@ class InstrumentManager(Thread):
             instrument_data = [[trade_line["price"], trade_line["amount"] if trade_line["direction"] == "buy" else -trade_line["amount"], trade_line["timestamp"]] for trade_line in instrument_data["result"]["trades"]]
             self.managed_instruments[instrument].fill_trades_by_cold_start(trades_start_data=instrument_data)
 
+            logging.info(f"Successfully initialized instrument: {self.managed_instruments[instrument]}")
 
     async def process_validation(self, callback: dict):
         # Process positions
