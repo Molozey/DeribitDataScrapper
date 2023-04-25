@@ -40,7 +40,7 @@ class OrderManager(ABC):
 
         self.client = None
 
-        print("Order Manager has been initialized")
+        logging.info("Instrument manager initialized")
 
     def connect_client(self, client: deribitClientType):
         """

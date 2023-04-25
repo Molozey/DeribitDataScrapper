@@ -4,8 +4,8 @@ import sys
 import threading
 import requests
 
-import nest_asyncio
-nest_asyncio.apply()
+# import nest_asyncio
+# nest_asyncio.apply()
 
 import asyncio
 import time
@@ -56,8 +56,8 @@ async def scrap_available_instruments(currency: Currency, cfg):
     print("Available maturities: \n", available_maturities)
 
     # TODO: uncomment
-    selected_maturity = int(input("Select number of interested maturity "))
-    # selected_maturity = -1
+    # selected_maturity = int(input("Select number of interested maturity "))
+    selected_maturity = -1
     if selected_maturity == -1:
         warnings.warn("Selected list of instruments is empty")
         return []
@@ -379,6 +379,7 @@ class DeribitClient(Thread, WebSocketApp):
         """
         response = json.loads(message)
         self._process_callback(response)
+        print(response)
         # Process initial order placement
         if 'result' in response:
             if 'order' in response['result']:
@@ -473,6 +474,11 @@ class DeribitClient(Thread, WebSocketApp):
             _hist = ''
         session = requests.Session()
         # В случае приватного запроса сначала необходимо добавить в header токен.
+        if (_private == 'private') and (not self.testMode):
+            import os, signal
+            logging.error('Cannot pass auth with prod mode right now')
+            os.kill(os.getpid(), signal.SIGUSR1)
+            raise NotImplementedError
         if _private == 'private':
             client_id = \
                 self.configuration["user_data"]["test_net"]["client_id"] \
@@ -542,19 +548,22 @@ async def start_scrapper(configuration_path=None):
     deribitWorker.start()
     th = threading.Thread(target=derLoop.run_forever)
     th.start()
-    while not deribitWorker.auth_complete:
-        continue
 
-    print("Sending request to place order")
-    await deribitWorker.order_manager.place_new_order(
-        instrument_name="BTC-PERPETUAL",
-        order_side=OrderSide.BUY,
-        amount=100,
-        order_type=OrderType.MARKET,
-        order_price=28_000.0
-    )
+    # TODO: implement auth for production
+    if deribitWorker.testMode:
+        while not deribitWorker.auth_complete:
+            continue
 
-    await asyncio.sleep(10)
+    # print("Sending request to place order")
+    # await deribitWorker.order_manager.place_new_order(
+    #     instrument_name="BTC-PERPETUAL",
+    #     order_side=OrderSide.BUY,
+    #     amount=100,
+    #     order_type=OrderType.MARKET,
+    #     order_price=28_000.0
+    # )
+    #
+    # await asyncio.sleep(10)
     # await deribitWorker.order_manager.place_new_order(
     #     instrument_name="BTC-PERPETUAL",
     #     order_side=OrderSide.BUY,
@@ -562,6 +571,7 @@ async def start_scrapper(configuration_path=None):
     #     order_type=OrderType.LIMIT,
     #     order_price=28_000.0
     # )
+
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

@@ -57,16 +57,21 @@ class InstrumentManager(Thread):
                 if self.interface.configuration["orderBookScrapper"]["test_net"] else \
                 self.interface.configuration["user_data"]["production"]["client_secret"]
 
-        # Send auth request
-        if not self.interface.auth_complete:
-            self.interface.send_new_request(auth_message(client_id=self.client_id,
-                                                         client_secret=self.client_secret))
+        # TODO: right now work's only with test net mode = True. Need to be implemented
+        if self.interface.testMode:
+            # Send auth request
+            if not self.interface.auth_complete:
+                self.interface.send_new_request(auth_message(client_id=self.client_id,
+                                                             client_secret=self.client_secret))
 
-        # Run coroutine with position infinite validation task.
-        asyncio.run_coroutine_threadsafe(self.validate_positions(), self.async_loop)
+        # TODO: right now work's only with test net mode = True. Need to be implemented
+        if self.interface.testMode:
+            # Run coroutine with position infinite validation task.
+            asyncio.run_coroutine_threadsafe(self.validate_positions(), self.async_loop)
 
         # Initialize all instruments
         self.initialize_instruments(self.interface.instruments_list)
+        logging.info("Instrument manager initialized")
 
     def initialize_instruments(self, instrument_names: List[str]):
         """
@@ -78,11 +83,15 @@ class InstrumentManager(Thread):
             params = {
                 "instrument_name": f"{instrument}"
             }
-            instrument_data = self.interface.send_block_sync_request(params,
-                                                                     method='get_position',
-                                                                     _private='private')
-            # TODO: what we need to take Amount (in USD) or Value (in BTC)
-            _cold_start_position = instrument_data["result"]["size"]
+            # TODO: right now work's only with test net mode = True. Need to be implemented
+            if self.interface.testMode:
+                instrument_data = self.interface.send_block_sync_request(params,
+                                                                         method='get_position',
+                                                                         _private='private')
+                # TODO: what we need to take Amount (in USD) or Value (in BTC)
+                _cold_start_position = instrument_data["result"]["size"]
+            else:
+                _cold_start_position = 0
             self.managed_instruments[instrument] = \
                 AbstractInstrument(
                     interface=self.interface,
@@ -193,7 +202,7 @@ class InstrumentManager(Thread):
         if instrument_name not in self.managed_instruments:
             # No instrument with user position in instrument manager
             # TODO: process this error with strategy
-            logging.error("No instrument with user position in instrument manager")
+            logging.error(f"No instrument {instrument_name} with user position in instrument manager")
             pass
 
         if increment:

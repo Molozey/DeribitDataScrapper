@@ -1,7 +1,7 @@
 import logging
 from time import time as sys_time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Union, List, Final
+from typing import TYPE_CHECKING, Union, List, Final, Optional
 from TradingInterfaceBot.Utils import CircularBuffer, InstrumentType
 from datetime import datetime, timedelta
 
@@ -61,8 +61,8 @@ class AbstractInstrument(ABC):
     user_position: float
     user_last_trades: CircularBuffer[TradeInformation]
 
-    _instrument_strike: Union[float] = None     # Only for options | futures
-    _instrument_maturity: datetime = None  # Only for options | futures
+    _instrument_strike: Optional[float] = None    # Only for options | futures
+    _instrument_maturity: Optional[datetime] = None  # Only for options | futures
 
     def __init__(self, interface: interface_type,
                  instrument_name: str, trades_buffer_size: int, order_book_changes_buffer_size: int,
@@ -92,12 +92,19 @@ class AbstractInstrument(ABC):
             raise ValueError(f'No strike for instrument {self.instrument_name}')
 
     @property
-    def instrument_maturity(self):
+    def instrument_maturity(self) -> float:
         if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
             return (self._instrument_maturity - datetime.now()) / timedelta(days=365)
         else:
             logging.error("Called maturity attribute for instrument without maturity. Check your logic!")
             raise ValueError(f'No maturity for instrument {self.instrument_name}')
+
+    def get_raw_instrument_maturity(self):
+        """
+        return raw datetime of instrument maturity
+        :return:
+        """
+        return self._instrument_maturity
 
     def place_last_trade(self, trade_price: float, trade_amount: float, trade_time: float = None):
         self.last_trades.record(TradeInformation(price=trade_price, amount=trade_amount, time=trade_time))
