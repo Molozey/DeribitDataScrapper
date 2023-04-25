@@ -555,13 +555,13 @@ async def start_scrapper(configuration_path=None):
     )
 
     await asyncio.sleep(10)
-    await deribitWorker.order_manager.place_new_order(
-        instrument_name="BTC-PERPETUAL",
-        order_side=OrderSide.BUY,
-        amount=100,
-        order_type=OrderType.LIMIT,
-        order_price=28_000.0
-    )
+    # await deribitWorker.order_manager.place_new_order(
+    #     instrument_name="BTC-PERPETUAL",
+    #     order_side=OrderSide.BUY,
+    #     amount=100,
+    #     order_type=OrderType.LIMIT,
+    #     order_price=28_000.0
+    # )
 if __name__ == '__main__':
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)

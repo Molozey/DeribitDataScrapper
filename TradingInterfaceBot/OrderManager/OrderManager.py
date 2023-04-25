@@ -77,24 +77,15 @@ class OrderManager(ABC):
                 _callback_data = callback["result"]["order"]
         else:
             raise ValueError('no callback')
-        _order_id, _open_time, _price, _executed_price, _total_commission, _direction, _order_amount, _filled_amount, _last_update_time, _order_exist_time, _instrument, _order_type, _order_state = await self._extract_values_from_callback(
+        _order_id, _order_tag, _open_time, _price, _executed_price, _total_commission, _direction, _order_amount, _filled_amount, _last_update_time, _order_exist_time, _instrument, _order_type, _order_state = await self._extract_values_from_callback(
             _callback_data)
         _order = await self.collect_order_object_by_tag(order_tag=_tag)
         if type(_order) == OrderStructure:
-            # Order Exist in structures
-            # TODO: implement
-            _order.order_amount = _order_amount
-            _order.last_update_time = _last_update_time
-            _order.executed_price = _executed_price
-            _order.filled_amount = _filled_amount
-            _order.total_commission = _total_commission
-            _order.order_exist_time = _order_exist_time
-            _order.price = _price
-            if _order.order_state != _order_state:
-                await self.change_order_state(order_tag=_tag, newOrderState=_order_state)
-
-            await self.client.connected_strategy.on_order_update(await self.collect_order_object_by_tag(order_tag=_tag))
-
+            await self._if_order_exist(
+                orderStructure=_order, _order_tag= _order_tag, _price=_price, _executed_price=_executed_price,
+                _total_commission=_total_commission, _order_amount=_order_amount, _filled_amount=_filled_amount,
+                _last_update_time=_last_update_time, _order_state=_order_state, _order_exist_time=_order_exist_time
+            )
         elif type(_order) == int:
             # Order Doesn't Exist in structures
             await self._if_order_dont_exist(
@@ -105,6 +96,30 @@ class OrderManager(ABC):
             pass
         else:
             raise ValueError("Unknown state of tag. Unable to define order status")
+
+    async def _if_order_exist(self, orderStructure: OrderStructure,
+                              _order_tag: str, _price,
+                              _executed_price, _total_commission, _order_amount,
+                              _filled_amount, _last_update_time, _order_state, _order_exist_time
+                              ):
+        # Collect values for changes:
+        _prev_filled = orderStructure.filled_amount
+        # Change user position
+        await self.client.instrument_manager.change_user_instrument_position(
+            position_change=_filled_amount - _prev_filled, instrument_name=orderStructure.instrument, increment=True
+        )
+        # Order Exist in structures
+        orderStructure.order_amount = _order_amount
+        orderStructure.last_update_time = _last_update_time
+        orderStructure.executed_price = _executed_price
+        orderStructure.filled_amount = _filled_amount
+        orderStructure.total_commission = _total_commission
+        orderStructure.order_exist_time = _order_exist_time
+        orderStructure.price = _price
+        if orderStructure.order_state != _order_state:
+            await self.change_order_state(order_tag=_order_tag, newOrderState=_order_state)
+
+        await self.client.connected_strategy.on_order_update(await self.collect_order_object_by_tag(order_tag=_order_tag))
 
     async def _if_order_dont_exist(self, order_tag: str, order_id, open_time, price,
                              executed_price, total_commission, direction, order_amount,
@@ -126,6 +141,14 @@ class OrderManager(ABC):
                                     order_state=order_state)
         # Place New order
         self.open_orders[f"{order_tag}"] = _new_order
+
+        # Collect values for changes:
+        _prev_filled = 0
+        # Change user position
+        await self.client.instrument_manager.change_user_instrument_position(
+            position_change=filled_amount - _prev_filled, instrument_name=_new_order.instrument, increment=True
+        )
+
         await self.client.connected_strategy.on_order_creation(_new_order)
 
     async def collect_order_object_by_tag(self, order_tag: str) -> Union[OrderStructure, int]:
@@ -191,6 +214,7 @@ class OrderManager(ABC):
         _order_id = _callback_data['order_id']
         _open_time = _callback_data['creation_timestamp']
         _price = _callback_data['price']
+        _order_tag = _callback_data['label']
         _executed_price = _callback_data['average_price']
         _total_commission = _callback_data['commission']
         _direction = _callback_data['direction']
@@ -201,8 +225,9 @@ class OrderManager(ABC):
         _instrument = _callback_data['instrument_name']
         _order_type = convert_deribit_order_type_to_structure(_callback_data["order_type"])
         _order_state = convert_deribit_order_status_to_structure(_callback_data["order_state"])
-        return _order_id, _open_time, _price, _executed_price, _total_commission, _direction, _order_amount, \
-               _filled_amount, _last_update_time, _order_exist_time, _instrument, _order_type, _order_state
+        return _order_id, _order_tag, _open_time, _price, _executed_price,\
+               _total_commission, _direction, _order_amount, _filled_amount, _last_update_time, \
+               _order_exist_time, _instrument, _order_type, _order_state
 
     async def not_enough_funds(self, callback):
         # {'jsonrpc': '2.0', 'id': 5275, 'error': {'message': 'not_enough_funds', 'code': 10009}, 'usIn': 1682176942386379, 'usOut': 1682176942387152, 'usDiff': 773, 'testnet': True}

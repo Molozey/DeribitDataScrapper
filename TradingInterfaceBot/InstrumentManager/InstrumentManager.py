@@ -175,6 +175,22 @@ class InstrumentManager(Thread):
     def process_callback(self, callback):
         pass
 
+    async def change_user_instrument_position(self, position_change: float, instrument_name: str, increment=True):
+        if instrument_name not in self.managed_instruments:
+            # No instrument with user position in instrument manager
+            # TODO: process this error with strategy
+            logging.error("No instrument with user position in instrument manager")
+            pass
+
+        if increment:
+            self.managed_instruments[instrument_name].user_position += position_change
+        elif not increment:
+            self.managed_instruments[instrument_name].user_position = position_change
+        else:
+            raise ValueError('Unknown value for increment field')
+
+        print("UPDATE AT ", self.managed_instruments[instrument_name])
+
 
 if __name__ == '__main__':
     with open("/Users/molozey/Documents/DeribitDataScrapper/TradingInterfaceBot/configuration.yaml", "r") as ymlfile:
