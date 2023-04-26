@@ -1,3 +1,4 @@
+import datetime
 import threading
 import time
 
@@ -10,6 +11,7 @@ import plotly.graph_objs as go
 
 from typing import List, Tuple
 
+from TradingInterfaceBot.Utils.AvailableInstrumentType import InstrumentType
 try:
     from ..AbstractExternal import AbstractExternal
     from ...InstrumentManager import AbstractInstrument
@@ -422,48 +424,9 @@ class SabrCalibration(AbstractExternal):
             [1, 1, 1, 1]
         ]
 
+        # Thread with Dash App
         th = threading.Thread(target=self.main).start()
-        print("After init")
-        time.sleep(1)
-        print("Afger wait init")
 
-    # Output("scatter-plot", "figure"),
-    # @app.callback(
-    #     Output('graph', 'extendData'),
-    #     State('store', 'data'),
-    #     Input('interval', 'n_intervals'),)
-    # def update_line_chart(self):
-    #
-    #     # print("Called update inside decor", self.test_x_values[0], self.test_y_values[0])
-    #     # fig = px.scatter(x=self.test_x_values[0], y=self.test_y_values[0])
-    #     # fig = px.scatter(x=[1, 2, 3, 5, 6], y=[10, 12, 13, 15, 16])
-    #     # return fig
-    #     # [{x: [data.x.slice(offset, end)], y: [data.y.slice(offset, end)]}, [0], 500]
-    #     return [{"x": [1, 2, 3 ,4 ,5], "y": [5, 4, 3, 2, 1]}, [0], 500]
-
-    # app.clientside_callback(
-    #     """
-    #     function (n_intervals, data, offset) {
-    #         offset = offset % data.x.length;
-    #         const end = Math.min((offset + 10), data.x.length);
-    #         return [[{x: [data.x.slice(offset, end)], y: [data.y.slice(offset, end)]}, [0], 500], end]
-    #     }
-    #     """,
-    #     [Output('graph', 'extendData')],
-    #     [Input('interval', 'n_intervals')], [State('store', 'data'), State('offset', 'data')]
-    # )
-    """
-    # @app.callback(Output('live-graph-index', 'figure'),
-    #               [Input('graph-update', 'interval')])
-    # def update_line_chart(self, *args):
-    #     print(*args)
-    #     print(f'{self=}')
-    #     df = px.data.iris()
-    #     return {'data': [go.Scatter(x=[1, 2, 3], y=[3, 2, 1])], 'layout': go.Layout(title='KLSE recent 20 points',)
-    #                                                 # xaxis=dict(range=[min(X), max(X)]),
-    #                                                 # yaxis=dict(range=[min(Y), max(Y)]))
-    #     }
-    """
     def main(self):
         app = Dash(__name__)
 
@@ -479,7 +442,7 @@ class SabrCalibration(AbstractExternal):
                     id='interval',
                     interval=20  # in millisecond 1*1000= 1 second
                 ),
-            ]  # 'margin-top':'-30px',},#, 'height':'2000px',},
+            ]
 
         )
         global web_app
@@ -487,13 +450,11 @@ class SabrCalibration(AbstractExternal):
 
         @app.callback(Output('live-graph-index', 'figure'),
                       [Input('interval', 'n_intervals')])
+
         def update_line_chart(self):
-            print(f"{web_app=}")
-            print(web_app.test_x_values, web_app.test_y_values)
-            return {'data': [go.Scatter(x=web_app.test_x_values[0], y=web_app.test_y_values[0])], 'layout': go.Layout(title='KLSE recent 20 points', )
-                    # xaxis=dict(range=[min(X), max(X)]),
-                    # yaxis=dict(range=[min(Y), max(Y)]))
-                    }
+            _real_implied_vols_fig = go.Scatter(x=web_app.test_x_values[0], y=web_app.test_y_values[0])
+            return {'data': [_real_implied_vols_fig],
+                    'layout': go.Layout(title='Volatility Surface', )}
 
         app.run_server(debug=False)
 
@@ -504,8 +465,34 @@ class SabrCalibration(AbstractExternal):
     def collect_data_from_instruments(self):
         recorded_instruments: Tuple[AbstractInstrument] = tuple(
             self.strategy.data_provider.instrument_manager.managed_instruments.values())
-        unique_maturities = np.unique([instrument.get_raw_instrument_maturity() for instrument in recorded_instruments])
+        instruments_maturities = np.array([instrument.get_raw_instrument_maturity() for instrument in recorded_instruments])
+        instruments_maturities = instruments_maturities[instruments_maturities != np.array(None)]
+        unique_maturities = np.unique(instruments_maturities)
         print("Unique maturities", unique_maturities)
+        # TODO: make better!
+        for maturity in unique_maturities:
+            available_instruments = []
+            for instrument in recorded_instruments:
+                if instrument.get_raw_instrument_maturity() == maturity:
+                    print(f"Instrument ({instrument}) match maturity ({maturity})")
+                    available_instruments.append(instrument)
+
+            print(f"{available_instruments=}")
+            extract_future = list(filter(lambda _: _.instrument_type == InstrumentType.FUTURE, available_instruments))[0]
+            print(f"Future is {extract_future}")
+            call_options = list(
+                filter(lambda _: _.instrument_type == InstrumentType.CALL_OPTION, available_instruments))
+            put_options = list(
+                filter(lambda _: _.instrument_type == InstrumentType.PUT_OPTION, available_instruments))
+
+            print("CALL OPTIONS", call_options)
+            print("PUT OPTIONS", put_options)
+
+            print("CALL STRIKES", np.array([item.instrument_strike for item in call_options]))
+            print("PUT STRIKES", np.array([item.instrument_strike for item in put_options]))
+
+            print("CALL PRICE", np.array([item.last_trades[-1] for item in call_options]))
+            print("PUT PRICE", np.array([item.last_trades[-1] for item in put_options]))
 
     async def on_order_book_update(self, abstractInstrument: AbstractInstrument):
         print("SABR ORDER BOOK UPDATE")
@@ -518,11 +505,7 @@ class SabrCalibration(AbstractExternal):
     async def on_tick_update(self, callback: dict):
         print("SABR TICK UPDATE")
 
-
-    def test_calculation(self):
-        self.draw_object: plt.Figure = plt.subplots(nrows=1, ncols=1, figsize=(6, 6))
-        self.draw_axes = self.draw_object[1]
-        self.draw_object = self.draw_object[0]
+    def test_calculation(self, put_strikes, call_strikes, T, forward, puts, calls):
 
         put_strikes = np.array([1300, 1400, 1500, 1600, 1700])
         call_strikes = np.array([1800, 1900, 2000, 2100, 2200])
@@ -537,11 +520,11 @@ class SabrCalibration(AbstractExternal):
              get_implied_vols(forward, T, call_strikes, calls, is_call=True)
         )
         )
-        self.draw_axes.plot(strikes, 100 * implied_vols, '.C3', markersize=20, label='real')
-        self.draw_axes.set_title('Market skew', fontsize=15)
-        self.draw_axes.set_xlabel('Strikes', color='white', fontsize=15)
-        self.draw_axes.set_ylabel('IV(%)', color='white', fontsize=15)
-        self.draw_axes.grid()
+        # self.draw_axes.plot(strikes, 100 * implied_vols, '.C3', markersize=20, label='real')
+        # self.draw_axes.set_title('Market skew', fontsize=15)
+        # self.draw_axes.set_xlabel('Strikes', color='white', fontsize=15)
+        # self.draw_axes.set_ylabel('IV(%)', color='white', fontsize=15)
+        # self.draw_axes.grid()
         beta = 0.95
 
         calibrated_params, error = calibrate_sabr(
@@ -560,10 +543,10 @@ class SabrCalibration(AbstractExternal):
             calibrated_params,
             compute_risk=False)
 
-        self.draw_axes.plot(test_strikes, 100 * test_iv, 'C1', label='calibrated')
-
-        self.draw_axes.legend(loc='lower right')
-        self.draw_object.show()
+        # self.draw_axes.plot(test_strikes, 100 * test_iv, 'C1', label='calibrated')
+        #
+        # self.draw_axes.legend(loc='lower right')
+        # self.draw_object.show()
 
 
 if __name__ == '__main__':
@@ -571,7 +554,5 @@ if __name__ == '__main__':
     # sabr.test_calculation()
     # sabr.update_plotting()
     while True:
-        print("start sleep")
         time.sleep(1)
-        print("after sleep")
         sabr.update_plotting()

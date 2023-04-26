@@ -22,6 +22,9 @@ class CircularBuffer(Generic[T]):
 
     def __getitem__(self, key) -> T:
         """Get element by index, relative to the current index"""
+        if len(self._data) == 0:
+            return None
+
         if len(self._data) == self.size:
             return self._data[(key + self.index) % self.size]
         else:
