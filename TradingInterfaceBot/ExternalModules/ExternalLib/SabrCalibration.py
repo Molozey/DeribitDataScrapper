@@ -466,7 +466,6 @@ class SabrCalibration(AbstractExternal, Thread):
         instruments_maturities = np.array([instrument.get_raw_instrument_maturity() for instrument in recorded_instruments])
         instruments_maturities = instruments_maturities[instruments_maturities != np.array(None)]
         unique_maturities = np.unique(instruments_maturities)
-        print("Unique maturities", unique_maturities)
         # TODO: make better! Made like this only to see result!!!
         if len(unique_maturities) > 1:
             logging.error("Currently unable to process more then 1 maturity")
@@ -475,23 +474,18 @@ class SabrCalibration(AbstractExternal, Thread):
             available_instruments = []
             for instrument in recorded_instruments:
                 if instrument.get_raw_instrument_maturity() == maturity:
-                    print(f"Instrument ({instrument}) match maturity ({maturity})")
                     available_instruments.append(instrument)
 
-            print(f"{available_instruments=}")
             extract_future = list(filter(lambda _: _.instrument_type == InstrumentType.FUTURE, available_instruments))[0]
             if extract_future.last_trades[-1] is None:
                 logging.error("No trades with underlying future. Go to next maturity")
                 continue
 
-            print(f"Future is {extract_future}")
             call_options = list(
                 filter(lambda _: _.instrument_type == InstrumentType.CALL_OPTION, available_instruments))
             put_options = list(
                 filter(lambda _: _.instrument_type == InstrumentType.PUT_OPTION, available_instruments))
 
-            print("CALL OPTIONS", call_options)
-            print("PUT OPTIONS", put_options)
 
             _call_strikes = np.array([item.instrument_strike for item in call_options])
             _put_strikes = np.array([item.instrument_strike for item in put_options])
@@ -499,7 +493,6 @@ class SabrCalibration(AbstractExternal, Thread):
             _call_prices = np.array([item.last_trades[-1] for item in call_options])
             _put_prices = np.array([item.last_trades[-1] for item in put_options])
 
-            print("Maturity", extract_future.instrument_maturity)
 
             _clean_call_strikes = []
             _clean_call_prices = []
@@ -546,7 +539,6 @@ class SabrCalibration(AbstractExternal, Thread):
         puts = np.array(puts)
         calls = np.array(calls)
 
-        print(f"{put_strikes=}, {call_strikes=}, {puts=}, {calls=}")
         strikes = np.concatenate((put_strikes, call_strikes))
         implied_vols = np.concatenate(
             (get_implied_vols(forward, T, put_strikes, puts, is_call=False),
@@ -578,7 +570,6 @@ class SabrCalibration(AbstractExternal, Thread):
 
         self.test_x_values = list(test_strikes)
         self.test_y_values = list(test_iv)
-        print(f"{self.test_x_values=}, {self.test_y_values=}")
         # self.draw_axes.plot(test_strikes, 100 * test_iv, 'C1', label='calibrated')
         #
         # self.draw_axes.legend(loc='lower right')
