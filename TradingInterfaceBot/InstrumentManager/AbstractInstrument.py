@@ -67,9 +67,8 @@ class AbstractInstrumentInfo(ABC):
 
         self.parse_instrument_name()  # Parse instrument name and extract all need info
 
-    def get_fields(self) -> [str, float, float, int]:
+    def get_fields(self) -> [str, float, int, int]:
         """
-
         :return: ins_index, strike, maturity, type
         """
         if self._instrument_strike is not None:
@@ -78,9 +77,9 @@ class AbstractInstrumentInfo(ABC):
             _strike = -1.
 
         if self._instrument_maturity is not None:
-            _maturity = self._instrument_maturity
+            _maturity = self._instrument_maturity.timestamp()
         else:
-            _maturity = -1.
+            _maturity = -1
 
         if self.instrument_type is not None:
             _type = self.instrument_type.number

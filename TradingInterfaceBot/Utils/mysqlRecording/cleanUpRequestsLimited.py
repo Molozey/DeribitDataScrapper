@@ -9,7 +9,7 @@ def REQUEST_TO_CREATE_OWN_ORDERS_TABLE(table_name: str):
         LAST_UPDATE_TIMESTAMP    bigint   null,
         INSTRUMENT_INDEX char(4) null,
         INSTRUMENT_STRIKE float  null,
-        INSTRUMENT_MATURITY float null,
+        INSTRUMENT_MATURITY bigint null,
         INSTRUMENT_TYPE int null,
         ORDER_TYPE blob null,
         ORDER_STATE blob null,
@@ -36,7 +36,7 @@ def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
     PRICE           float null,
     INSTRUMENT_INDEX char(4) null,
     INSTRUMENT_STRIKE float  null,
-    INSTRUMENT_MATURITY float null,
+    INSTRUMENT_MATURITY bigint null,
     INSTRUMENT_TYPE int null,
     DIRECTION       blob  null,
     AMOUNT          float null
@@ -51,7 +51,7 @@ def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: in
     CHANGE_ID bigint not null auto_increment primary key,
     INSTRUMENT_INDEX char(4) null,
     INSTRUMENT_STRIKE float  null,
-    INSTRUMENT_MATURITY float null,
+    INSTRUMENT_MATURITY bigint null,
     INSTRUMENT_TYPE int null,
     TIMESTAMP_VALUE bigint                           not null,
     """

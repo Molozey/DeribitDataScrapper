@@ -57,8 +57,8 @@ async def scrap_available_instruments(currency: Currency, cfg):
     print("Available maturities: \n", available_maturities)
 
     # TODO: uncomment
-    # selected_maturity = int(input("Select number of interested maturity "))
-    selected_maturity = -1
+    selected_maturity = int(input("Select number of interested maturity "))
+    # selected_maturity = -1
     if selected_maturity == -1:
         warnings.warn("Selected list of instruments is empty")
         return []
