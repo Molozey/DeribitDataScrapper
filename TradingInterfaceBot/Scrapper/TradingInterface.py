@@ -11,6 +11,7 @@ import asyncio
 import time
 from typing import Optional, Union
 
+from TradingInterfaceBot.InstrumentManager import AbstractInstrumentInfo
 from TradingInterfaceBot.DataBase import *
 from TradingInterfaceBot.OrderManager import OrderManager
 from TradingInterfaceBot.Utils import *
@@ -56,8 +57,8 @@ async def scrap_available_instruments(currency: Currency, cfg):
     print("Available maturities: \n", available_maturities)
 
     # TODO: uncomment
-    selected_maturity = int(input("Select number of interested maturity "))
-    # selected_maturity = -1
+    # selected_maturity = int(input("Select number of interested maturity "))
+    selected_maturity = -1
     if selected_maturity == -1:
         warnings.warn("Selected list of instruments is empty")
         return []
@@ -251,10 +252,11 @@ class DeribitClient(Thread, WebSocketApp):
     в большую часть компонентов системы, если для расширений необходимо вносить изменения в DeribitClient, значит
     что-то не так.
     """
+
     websocket: Optional[WebSocketApp]
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
     loop: asyncio.unix_events.SelectorEventLoop
-    instrument_name_instrument_id_map: AutoIncrementDict[str, int] = None
+    instrument_name_instrument_id_map: AutoIncrementDict[str, AbstractInstrumentInfo] = None
     only_API_orders: bool = None
     instrument_manager: InstrumentManager = None
     order_manager: OrderManager = None
@@ -284,7 +286,7 @@ class DeribitClient(Thread, WebSocketApp):
                 instruments_listed.append(_instrument_name)
 
         # Download instrument mapping
-        self.instrument_name_instrument_id_map = AutoIncrementDict(path_to_file=
+        self.instrument_name_instrument_id_map: AutoIncrementDict[str, AbstractInstrumentInfo] = AutoIncrementDict(path_to_file=
                                                                    self.configuration["record_system"][
                                                                        "instrumentNameToIdMapFile"])
 

@@ -30,7 +30,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
                                                       depth_size=self.depth), self.tables_names))
 
         super(OrderBookSubscriptionCONSTANT, self).__init__(scrapper=scrapper, request_typo=RequestTypo.PUBLIC)
-        self.number_of_columns = self.depth * 4 + 3
+        self.number_of_columns = self.depth * 4 + 6
 
         self.instrument_name_instrument_id_map = self.scrapper.instrument_name_instrument_id_map
 
@@ -43,7 +43,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         if self.depth == 0:
             raise NotImplementedError
         else:
-            columns = ["CHANGE_ID", "NAME_INSTRUMENT", "TIMESTAMP_VALUE"]
+            columns = ["CHANGE_ID", "INSTRUMENT_INDEX", "INSTRUMENT_STRIKE", "INSTRUMENT_MATURITY", "INSTRUMENT_TYPE", "TIMESTAMP_VALUE"]
             columns.extend(map(lambda x: [f"BID_{x}_PRICE", f"BID_{x}_AMOUNT"], range(self.depth)))
             columns.extend(map(lambda x: [f"ASK_{x}_PRICE", f"ASK_{x}_AMOUNT"], range(self.depth)))
 
@@ -69,8 +69,8 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
     def extract_data_from_response(self, input_response: dict) -> ndarray:
         _change_id = input_response['params']['data']['change_id']
         _timestamp = input_response['params']['data']['timestamp']
-        _instrument_name = self.instrument_name_instrument_id_map[
-            input_response['params']['data']['instrument_name']]
+        _ins_idx, _instrument_strike, _instrument_maturity, _instrument_type = self.instrument_name_instrument_id_map[
+            input_response['params']['data']['instrument_name']].get_fields()
         _bids = sorted(input_response['params']['data']['bids'], key=lambda x: x[0], reverse=True)
         _asks = sorted(input_response['params']['data']['asks'], key=lambda x: x[0], reverse=False)
         _bids_insert_array = [[-1.0, -1.0] for _i in range(self.depth)]
@@ -86,7 +86,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             _asks_insert_array[i] = ask
             _pointer -= 1
         _bids_insert_array.extend(_asks_insert_array)
-        _update_line = [_instrument_name, _timestamp]
+        _update_line = [_ins_idx, _instrument_strike, _instrument_maturity, _instrument_type, _timestamp]
         _update_line.extend(_bids_insert_array)
         _update_line.insert(0, 0)
         _update_line = np.array(flatten(_update_line))

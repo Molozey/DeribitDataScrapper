@@ -9,11 +9,83 @@ import json
 import numpy as np
 
 from TradingInterfaceBot.Subsciption import AbstractSubscription
+from TradingInterfaceBot.InstrumentManager import AbstractInstrumentInfo
 
 import yaml
 
 
-class AutoIncrementDict(dict):
+# class AutoIncrementDict(dict):
+#     """
+#     Расширение класса dict для удобной работы с кодированием названий инструментов в int type.
+#     В случае если ключа в словаре не существует - добавляется запись с ключом Name-instrument и
+#     value = auto_incremented int значением, после выполняется сохранение mutated
+#     json в файл InstrumentNameToIdMap.json. Данный файл нельзя удалять/изменять/перемещать
+#     """
+#     pointer: int = -1
+#
+#     def __init__(self, path_to_file):
+#         super().__init__()
+#         self.path_to_file = "/".join(__file__.split('/')[:-1]) + "/" + path_to_file
+#         if not os.path.exists(self.path_to_file):
+#             logging.info("No cached instruments map exist")
+#             self.add_instrument(key="EMPTY-INSTRUMENT")
+#
+#         else:
+#             logging.info("Cache instruments map exist")
+#             self.download_cache_from_file(path_to_file=self.path_to_file)
+#
+#     def download_cache_from_file(self, path_to_file: str):
+#         """
+#         Загрузка существующей карты названий инструментов.
+#         :param path_to_file:
+#         :return:
+#         """
+#         # Load existed instrument map
+#         with open(path_to_file, "r") as _file:
+#             instrument_name_instrument_id_map = json.load(_file)
+#
+#         for objects in instrument_name_instrument_id_map.items():
+#             self.add_instrument(key=objects[0], value=objects[1])
+#
+#         self.pointer = max(instrument_name_instrument_id_map.values())
+#
+#         logging.info(f"Dict map has last pointer equals to {self.pointer}")
+#
+#     def add_instrument(self, key, value=None):
+#         """
+#         Добвление нового инструмента в словарь.
+#         :param key:
+#         :param value:
+#         :return:
+#         """
+#         if not value:
+#             self.pointer += 1
+#             super().__setitem__(key, self.pointer)
+#         else:
+#             super().__setitem__(key, value)
+#
+#     def _save_after_adding(self):
+#         """
+#         Сохранение файла.
+#         :return:
+#         """
+#         with open(f'{self.path_to_file}', 'w') as fp:
+#             json.dump(self, fp)
+#         logging.info("Saved new instrument to map")
+#
+#     def __getitem__(self, item):
+#         """
+#         Переопределенный метод get_item.
+#         Если key exist -> возвращаем его value
+#         Иначе create key with value = max_value in dict + 1 -> return value
+#         :param item:
+#         :return:
+#         """
+#         if item not in self:
+#             self.add_instrument(item)
+#             self._save_after_adding()
+#         return super().__getitem__(item)
+class AutoIncrementDict(Dict[str, AbstractInstrumentInfo]):
     """
     Расширение класса dict для удобной работы с кодированием названий инструментов в int type.
     В случае если ключа в словаре не существует - добавляется запись с ключом Name-instrument и
@@ -24,14 +96,14 @@ class AutoIncrementDict(dict):
 
     def __init__(self, path_to_file):
         super().__init__()
-        self.path_to_file = "/".join(__file__.split('/')[:-1]) + "/" + path_to_file
-        if not os.path.exists(self.path_to_file):
-            logging.info("No cached instruments map exist")
-            self.add_instrument(key="EMPTY-INSTRUMENT")
-
-        else:
-            logging.info("Cache instruments map exist")
-            self.download_cache_from_file(path_to_file=self.path_to_file)
+        # self.path_to_file = "/".join(__file__.split('/')[:-1]) + "/" + path_to_file
+        # if not os.path.exists(self.path_to_file):
+        #     logging.info("No cached instruments map exist")
+        #     self.add_instrument(key="EMPTY-INSTRUMENT")
+        #
+        # else:
+        #     logging.info("Cache instruments map exist")
+        #     self.download_cache_from_file(path_to_file=self.path_to_file)
 
     def download_cache_from_file(self, path_to_file: str):
         """
@@ -40,15 +112,15 @@ class AutoIncrementDict(dict):
         :return:
         """
         # Load existed instrument map
-        with open(path_to_file, "r") as _file:
-            instrument_name_instrument_id_map = json.load(_file)
-
-        for objects in instrument_name_instrument_id_map.items():
-            self.add_instrument(key=objects[0], value=objects[1])
-
-        self.pointer = max(instrument_name_instrument_id_map.values())
-
-        logging.info(f"Dict map has last pointer equals to {self.pointer}")
+        # with open(path_to_file, "r") as _file:
+        #     instrument_name_instrument_id_map = json.load(_file)
+        #
+        # for objects in instrument_name_instrument_id_map.items():
+        #     self.add_instrument(key=objects[0], value=objects[1])
+        #
+        # self.pointer = max(instrument_name_instrument_id_map.values())
+        #
+        logging.info(f"Caching unavailable while using new mapping tool")
 
     def add_instrument(self, key, value=None):
         """
@@ -57,20 +129,16 @@ class AutoIncrementDict(dict):
         :param value:
         :return:
         """
-        if not value:
-            self.pointer += 1
-            super().__setitem__(key, self.pointer)
-        else:
-            super().__setitem__(key, value)
+        super().__setitem__(key, AbstractInstrumentInfo(key))
 
     def _save_after_adding(self):
         """
         Сохранение файла.
         :return:
         """
-        with open(f'{self.path_to_file}', 'w') as fp:
-            json.dump(self, fp)
-        logging.info("Saved new instrument to map")
+        # with open(f'{self.path_to_file}', 'w') as fp:
+        #     json.dump(self, fp)
+        logging.warning("Caching unavailable while using new mapping tool")
 
     def __getitem__(self, item):
         """

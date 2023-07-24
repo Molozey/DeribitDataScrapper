@@ -16,14 +16,14 @@ else:
 
 
 class OwnOrdersSubscription(AbstractSubscription):
-    tables_names = ["Trades_table_{}"]
+    tables_names = ["User_orders_test{}"]
 
     def __init__(self, scrapper: scrapper_typing):
         self.tables_names = [f"User_orders_test"]
         self.tables_names_creation = list(map(REQUEST_TO_CREATE_OWN_ORDERS_TABLE, self.tables_names))
 
         super(OwnOrdersSubscription, self).__init__(scrapper=scrapper, request_typo=RequestTypo.PRIVATE)
-        self.number_of_columns = 13
+        self.number_of_columns = 16
         self.instrument_name_instrument_id_map = self.scrapper.instrument_name_instrument_id_map
 
     def _place_here_tables_names_and_creation_requests(self):
@@ -31,7 +31,7 @@ class OwnOrdersSubscription(AbstractSubscription):
         self.tables_names_creation = list(map(REQUEST_TO_CREATE_OWN_ORDERS_TABLE, self.tables_names))
 
     def create_columns_list(self) -> List[str]:
-        columns = ["CHANGE_ID", "CREATION_TIMESTAMP", "LAST_UPDATE_TIMESTAMP", "NAME_INSTRUMENT", "ORDER_TYPE",
+        columns = ["CHANGE_ID", "CREATION_TIMESTAMP", "LAST_UPDATE_TIMESTAMP", "INSTRUMENT_INDEX", "INSTRUMENT_STRIKE", "INSTRUMENT_MATURITY", "INSTRUMENT_TYPE", "ORDER_TYPE",
                    "ORDER_STATE", "ORDER_ID", "FILLED_AMOUNT", "COMMISSION", "AVERAGE_PRICE", "PRICE",
                    "DIRECTION", "AMOUNT"]
         columns = flatten(columns)
@@ -65,8 +65,8 @@ class OwnOrdersSubscription(AbstractSubscription):
         _change_id = 666
         _creation_time = data_object["creation_timestamp"]
         _last_update = data_object["last_update_timestamp"]
-        _instrument_name = self.instrument_name_instrument_id_map[
-            data_object['instrument_name']]
+        _ins_idx, _instrument_strike, _instrument_maturity, _instrument_type = self.instrument_name_instrument_id_map[
+            data_object['instrument_name']].get_fields()
         _order_type = data_object["order_type"]
         _order_state = data_object["order_state"]
         _order_id = data_object["order_id"]
@@ -78,7 +78,7 @@ class OwnOrdersSubscription(AbstractSubscription):
         _amount = data_object["amount"]
 
         _full_ndarray = np.array(
-            [_change_id, _creation_time, _last_update, _instrument_name, _order_type, _order_state, _order_id,
+            [_change_id, _creation_time, _last_update, _ins_idx, _instrument_strike, _instrument_maturity, _instrument_type, _order_type, _order_state, _order_id,
              _filled_amount, _commission, _average_price, _price, _direction, _amount]
         )
         return np.array(_full_ndarray)

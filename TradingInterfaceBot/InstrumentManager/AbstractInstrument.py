@@ -50,6 +50,125 @@ class OrderBookChange:
             self.order_book_change_time = sys_time() * 1000
 
 
+class AbstractInstrumentInfo(ABC):
+    instrument_name: str
+    instrument_type: Optional[InstrumentType]
+
+    _instrument_strike: Optional[float] = None  # Only for options | futures
+    _instrument_maturity: Optional[datetime] = None  # Only for options | futures
+
+    def __init__(self, instrument_name: str):
+
+        self._instrument_strike = None
+        self._instrument_maturity = None
+        self.instrument_type = None
+
+        self.instrument_name = instrument_name
+
+        self.parse_instrument_name()  # Parse instrument name and extract all need info
+
+    def get_fields(self) -> [str, float, float, int]:
+        """
+
+        :return: ins_index, strike, maturity, type
+        """
+        if self._instrument_strike is not None:
+            _strike = self._instrument_strike
+        else:
+            _strike = -1.
+
+        if self._instrument_maturity is not None:
+            _maturity = self._instrument_maturity
+        else:
+            _maturity = -1.
+
+        if self.instrument_type is not None:
+            _type = self.instrument_type.number
+        else:
+            _type = -1
+        return [self.instrument_name[:3], _strike, _maturity, _type]
+
+    @property
+    def instrument_strike(self):
+        if (self.instrument_type == InstrumentType.CALL_OPTION) or (
+                self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
+            return float(self._instrument_strike)
+        else:
+            logging.error("Called strike attribute for instrument without strike. Check your logic!")
+            raise ValueError(f'No strike for instrument {self.instrument_name}')
+
+    @property
+    def instrument_maturity(self) -> float:
+        if (self.instrument_type == InstrumentType.CALL_OPTION) or (
+                self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
+            return (self._instrument_maturity - datetime.now()) / timedelta(days=365)
+        else:
+            logging.error("Called maturity attribute for instrument without maturity. Check your logic!")
+            raise ValueError(f'No maturity for instrument {self.instrument_name}')
+
+    def get_raw_instrument_maturity(self):
+        """
+        return raw datetime of instrument maturity
+        :return:
+        """
+        return self._instrument_maturity
+
+    def __repr__(self):
+        if (self.instrument_type == InstrumentType.CALL_OPTION) or (
+                self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.OPTION):
+            return str({
+                'instrument_name': self.instrument_name,
+                'instrument_type': self.instrument_type.instrument_type,
+                'instrument_strike': self.instrument_strike,
+                'instrument_maturity': self.instrument_maturity,
+            })
+        elif self.instrument_type == InstrumentType.FUTURE:
+            return str({
+                'instrument_name': self.instrument_name,
+                'instrument_type': self.instrument_type.instrument_type,
+                'instrument_maturity': self.instrument_maturity,
+            })
+        else:
+            return str({
+                'instrument_name': self.instrument_name,
+                'instrument_type': self.instrument_type.instrument_type,
+            })
+
+    def parse_instrument_name(self):
+        """
+        # TODO: no combo futures implemented.
+        :return:
+        """
+        try:
+            _maturity = None
+            _strike = None
+            _kind = InstrumentType.ASSET
+
+            split_instrument_name = self.instrument_name.split('-')
+            if split_instrument_name[-1] == 'C':
+                _kind = InstrumentType.CALL_OPTION
+                _maturity = datetime.strptime(split_instrument_name[1], '%d%b%y')
+                _strike = split_instrument_name[2]
+
+            elif split_instrument_name[-1] == 'P':
+                _kind = InstrumentType.PUT_OPTION
+                _maturity = datetime.strptime(split_instrument_name[1], '%d%b%y')
+                _strike = split_instrument_name[2]
+            else:
+                if split_instrument_name[-1] == "PERPETUAL":
+                    pass
+                else:
+                    _maturity = datetime.strptime(split_instrument_name[1], '%d%b%y')
+                    _kind = InstrumentType.FUTURE
+
+            self._instrument_maturity = _maturity
+            self._instrument_strike = _strike
+            self.instrument_type = _kind
+        except:
+            logging.error("Error while parsing instrument name")
+            raise ValueError("Error while parsing instrument name")
+
+
 class AbstractInstrument(ABC):
     interface: Union[interface_type]
 

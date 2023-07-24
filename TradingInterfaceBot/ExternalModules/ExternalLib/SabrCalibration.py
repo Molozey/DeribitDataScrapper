@@ -461,6 +461,10 @@ class SabrCalibration(AbstractExternal, Thread):
         self.test_x_values = [[1, 2, 3, 4, 5]]
 
     def collect_data_from_instruments(self):
+        """
+        Если фьючерс на базовый актив - синтетический - ничего не заработает. Возможно я где-то сделал на это валидацию, но вшита она очень глубоко, и сейчас я ее найти не могу
+        :return:
+        """
         recorded_instruments: Tuple[AbstractInstrument] = tuple(
             self.strategy.data_provider.instrument_manager.managed_instruments.values())
         instruments_maturities = np.array([instrument.get_raw_instrument_maturity() for instrument in recorded_instruments])

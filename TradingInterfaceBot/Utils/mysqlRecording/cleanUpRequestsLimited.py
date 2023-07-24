@@ -7,7 +7,10 @@ def REQUEST_TO_CREATE_OWN_ORDERS_TABLE(table_name: str):
         CHANGE_ID       bigint not null auto_increment primary key,
         CREATION_TIMESTAMP       bigint   null,
         LAST_UPDATE_TIMESTAMP    bigint   null,
-        NAME_INSTRUMENT bigint  null,
+        INSTRUMENT_INDEX char(4) null,
+        INSTRUMENT_STRIKE float  null,
+        INSTRUMENT_MATURITY float null,
+        INSTRUMENT_TYPE int null,
         ORDER_TYPE blob null,
         ORDER_STATE blob null,
         ORDER_ID    bigint null,
@@ -31,7 +34,10 @@ def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
     TIMESTAMP_VALUE       bigint   null,
     TRADE_ID        bigint   null,
     PRICE           float null,
-    NAME_INSTRUMENT blob  null,
+    INSTRUMENT_INDEX char(4) null,
+    INSTRUMENT_STRIKE float  null,
+    INSTRUMENT_MATURITY float null,
+    INSTRUMENT_TYPE int null,
     DIRECTION       blob  null,
     AMOUNT          float null
 );
@@ -43,7 +49,10 @@ def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: in
     HEADER = "create table {}".format(table_name)
     REQUIRED_FIELDS = """(
     CHANGE_ID bigint not null auto_increment primary key,
-    NAME_INSTRUMENT blob                           not null,
+    INSTRUMENT_INDEX char(4) null,
+    INSTRUMENT_STRIKE float  null,
+    INSTRUMENT_MATURITY float null,
+    INSTRUMENT_TYPE int null,
     TIMESTAMP_VALUE bigint                           not null,
     """
     ADDITIONAL_FIELDS_BIDS = """
