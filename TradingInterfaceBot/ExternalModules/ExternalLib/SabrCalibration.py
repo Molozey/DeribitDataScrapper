@@ -75,7 +75,7 @@ def g_impvol_prime(sigma, T, S0, K, r):
 def implied_vol(V_mkt, S0, K, T, r, is_call=True, tol=10 ** -4, sigma_l=10 ** -8, sigma_r=2):
     if g_impvol(V_mkt, sigma_l, T, S0, K, r, is_call) * \
             g_impvol(V_mkt, sigma_r, T, S0, K, r, is_call) > 0:
-        print('no zero at the initial interval')
+        # print('no zero at the initial interval')
         return 0.
     else:
         sigma = (sigma_l + sigma_r) / 2

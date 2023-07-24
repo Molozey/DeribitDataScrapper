@@ -11,7 +11,7 @@ import yaml
 
 
 class EmptyStrategy(AbstractStrategy):
-    connected_externals = [SabrCalibration()]  # Add sabr external
+    connected_externals = {"SABR": SabrCalibration()}  # Add sabr external
 
     def __init__(self, configuration_file: str = 'StrategyConfig'):
         if configuration_file == 'StrategyConfig':

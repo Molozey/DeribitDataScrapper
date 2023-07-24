@@ -19,7 +19,7 @@ from TradingInterfaceBot.Strategy import *
 from TradingInterfaceBot.InstrumentManager import InstrumentManager
 
 from TradingInterfaceBot.SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from ScrapperWithPreSelectedMaturities import scrap_available_instruments_by_extended_config
+from TradingInterfaceBot.Scrapper.ScrapperWithPreSelectedMaturities import scrap_available_instruments_by_extended_config
 
 from websocket import WebSocketApp, enableTrace, ABNF
 from threading import Thread
@@ -319,17 +319,20 @@ class DeribitClient(Thread, WebSocketApp):
         # Set flag for authentication validation
         self.auth_complete: bool = False
 
-        # self.add_instrument_manager()
-
     def add_instrument_manager(self):
-        self.instrument_manager = InstrumentManager(self, self.configuration,
-                                                    self.loop,
-                                                    ConfigRoot.DIRECTORY)
-        # self.instrument_manager.initialize_instruments(self.instruments_list)
+        if self.configuration["externalModules"]["add_instrument_manager"]:
+            self.instrument_manager = InstrumentManager(self, self.configuration,
+                                                        self.loop,
+                                                        ConfigRoot.DIRECTORY)
+        else:
+            logging.warning("No instrument manager selected by configuration")
 
     def add_order_manager(self):
-        self.order_manager = OrderManager()
-        self.order_manager.connect_client(client=self)
+        if self.configuration["externalModules"]["add_order_manager"]:
+            self.order_manager = OrderManager()
+            self.order_manager.connect_client(client=self)
+        else:
+            logging.warning("No order manager selected by configuration")
 
     def _set_exchange(self):
         """
@@ -351,13 +354,15 @@ class DeribitClient(Thread, WebSocketApp):
         :return:
         """
         self.websocket = WebSocketApp(self.exchange_version,
-                                      on_message=self._on_message, on_open=self._on_open, on_error=self._on_error)
+                                      on_message=self._on_message, on_open=self._on_open, on_error=self._on_error,)
         if self.enable_traceback:
             enableTrace(True)
         # Run forever loop
+        # self.websocket.last_ping_tm = 32
+        # self.websocket.last_pong_tm = 1
         while True:
             try:
-                self.websocket.run_forever()
+                self.websocket.run_forever(ping_interval=None, reconnect=2, skip_utf8_validation=True)
             except Exception as e:
                 print(e)
                 logging.error("Error at run_forever loop")
@@ -369,6 +374,8 @@ class DeribitClient(Thread, WebSocketApp):
         logging.error(error)
         print("ERROR:", error)
         self.instrument_requested.clear()
+        # import os, signal
+        # os.kill(os.getpid(), signal.SIGUSR1)
 
     def _on_message(self, websocket, message):
         """
@@ -379,7 +386,7 @@ class DeribitClient(Thread, WebSocketApp):
         """
         response = json.loads(message)
         self._process_callback(response)
-        print(response)
+        # print(response)
         # Process initial order placement
         if 'result' in response:
             if 'order' in response['result']:
@@ -399,15 +406,16 @@ class DeribitClient(Thread, WebSocketApp):
                 asyncio.run_coroutine_threadsafe(sub.process_response_from_server(response=response),
                                                  loop=self.loop)
 
-        # validation requests for instrument manager
-        if 'result' in response:
-            # Cut subs
-            if 'method' not in response:
-                # Cut auth messages
-                if 'token_type' not in response['result']:
-                    if response['result'] != 'ok':
-                        for dict_obj in response['result']:
-                            asyncio.run_coroutine_threadsafe(self.instrument_manager.process_validation(dict_obj), self.loop)
+        if self.instrument_manager is not None:
+            # validation requests for instrument manager
+            if 'result' in response:
+                # Cut subs
+                if 'method' not in response:
+                    # Cut auth messages
+                    if 'token_type' not in response['result']:
+                        if response['result'] != 'ok':
+                            for dict_obj in response['result']:
+                                asyncio.run_coroutine_threadsafe(self.instrument_manager.process_validation(dict_obj), self.loop)
 
         # Process errors
         if 'error' in response:
@@ -457,7 +465,7 @@ class DeribitClient(Thread, WebSocketApp):
         """
         self.websocket.send(json.dumps(request), ABNF.OPCODE_TEXT)
         # TODO: do it better. Unsync.
-        time.sleep(.1)
+        time.sleep(0.05)
 
     def send_block_sync_request(self, params: dict, method="get_position", _private='private') -> dict:
         """

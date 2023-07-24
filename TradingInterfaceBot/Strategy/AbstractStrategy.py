@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Dict, Optional
 from TradingInterfaceBot.Utils import OrderStructure
 from TradingInterfaceBot.InstrumentManager import AbstractInstrument
 from TradingInterfaceBot.ExternalModules import AbstractExternal
@@ -16,10 +16,10 @@ class AbstractStrategy(ABC):
     open_orders: dict[int, OrderStructure] = dict()
     all_orders: dict[int, OrderStructure] = dict()
 
-    connected_externals: Optional[List[AbstractExternal]]
+    connected_externals: Optional[Dict[str, AbstractExternal]]
 
     def __init__(self):
-        for external in self.connected_externals:
+        for external in self.connected_externals.values():
             external.connect_strategy(self)
 
     def connect_client(self, data_provider: scrapper_type):
@@ -27,12 +27,12 @@ class AbstractStrategy(ABC):
 
     async def on_order_book_update(self, abstractInstrument: AbstractInstrument):
         await self._on_order_book_update(abstractInstrument)
-        for external in self.connected_externals:
+        for external in self.connected_externals.values():
             await external.on_order_book_update(abstractInstrument)
 
     async def on_trade_update(self, abstractInstrument: AbstractInstrument):
         await self._on_trade_update(abstractInstrument)
-        for external in self.connected_externals:
+        for external in self.connected_externals.values():
             await external.on_trade_update(abstractInstrument)
 
     async def on_order_update(self, updatedOrder: OrderStructure):
@@ -40,7 +40,7 @@ class AbstractStrategy(ABC):
 
     async def on_tick_update(self, callback: dict):
         await self._on_tick_update(callback)
-        for external in self.connected_externals:
+        for external in self.connected_externals.values():
             await external.on_tick_update(callback)
 
     async def on_position_miss_match(self):
