@@ -2,3 +2,8 @@
 /.env
 /OrderBookScrapper/dataStorage/*
 /RayInstall/
+/build
+/*.egg-info
+/dist
+/venv
+/.pypirc
