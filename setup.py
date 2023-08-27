@@ -24,7 +24,7 @@ if __name__ == '__main__':
     print(find_packages())
     setup(
         name=module_name,
-        version='0.0.0026',
+        version='0.0.0027',
         description='Deribit Scrapping Interface',
         long_description=long_desc,
         long_description_content_type="text/markdown",

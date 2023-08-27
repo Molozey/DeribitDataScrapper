@@ -1,4 +1,3 @@
-from __future__ import annotations
 
 import asyncio
 import logging
@@ -8,14 +7,9 @@ import threading
 
 import yaml
 
-from DataBase import *
-from OrderManager import OrderManager
 from Utils import *
-from Subsciption import *
 from Strategy import *
-from InstrumentManager import InstrumentManager
 
-from SyncLib.AvailableRequests import get_ticker_by_instrument_request
 from Scrapper.ScrapperWithPreSelectedMaturities import scrap_available_instruments_by_extended_config
 from Scrapper.TradingInterface import validate_configuration_file, DeribitClient, scrap_available_instruments
 
@@ -26,8 +20,6 @@ async def start_scrapper(configuration_path=None):
         print('__file__:    ', __file__)
         print(f"script dir {os.path.dirname(__file__)}")
         os.chdir(os.path.dirname(__file__))
-        with open('configuration.yaml', "r") as ymlfile:
-            cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
         configuration = validate_configuration_file("configuration.yaml")
         with open('developerConfiguration.yaml', "r") as ymlfile:
             devCFG = yaml.load(ymlfile, Loader=yaml.FullLoader)
@@ -78,10 +70,8 @@ async def start_scrapper(configuration_path=None):
         logging.exception(E)
 
 if __name__ == '__main__':
-    # Make sure that in configuration add_order_manager = True | add_instrument_manager = True
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.create_task(start_scrapper())
     loop.run_forever()
     time.sleep(1)
-

@@ -1,6 +1,6 @@
 build-wheel:
 	python setup.py bdist_wheel
-	twine upload -r pypi dist/* -u __token__ -p $PYPI_TOKEN
+	twine upload -r pypi dist/* -u __token__ -p "$PYPI_TOKEN"
 
 
 activate-dev-venv:

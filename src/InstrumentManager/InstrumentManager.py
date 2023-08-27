@@ -37,6 +37,7 @@ class InstrumentManager(Thread):
         self.order_book_depth = interface_cfg["orderBookScrapper"]["depth"]
         self.managed_instruments = {}
         if use_config == ConfigRoot.DIRECTORY:
+            raise NotImplemented("unavailable to load config from production directory pipeline")
             cfg_path = "/".join(__file__.split('/')[:-1]) + "/" + "InstrumentManagerConfig.yaml"
             with open(cfg_path, "r") as ymlfile:
                 self.configuration = yaml.load(ymlfile, Loader=yaml.FullLoader)

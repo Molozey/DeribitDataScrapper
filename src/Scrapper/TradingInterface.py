@@ -113,17 +113,13 @@ def validate_configuration_file(configuration_path: str) -> dict:
                               cfg["orderBookScrapper"]["scrapper_body"]))
     if sum(available_subs) != 0:
         logging.warning("Unknown subscriptions at scrapper_body")
-        loop.stop()
         raise NotImplementedError
     #
     if type(cfg["record_system"]["use_batches_to_record"]) != bool:
-        loop.stop()
         raise TypeError("Invalid type for record system configuration")
     if type(cfg["record_system"]["number_of_tmp_tables"]) != int:
-        loop.stop()
         raise TypeError("Invalid type for record system configuration")
     if type(cfg["record_system"]["size_of_tmp_batch_table"]) != int:
-        loop.stop()
         raise TypeError("Invalid type for record system configuration")
 
     return cfg
@@ -172,7 +168,6 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                                                subscription_type=subscription_type,
                                                loop=scrapper.loop)
                     else:
-                        loop.stop()
                         raise ValueError('Unavailable value of depth order book mode')
 
                     result_netting[subscription_type] = database
@@ -210,7 +205,6 @@ def net_databases_to_subscriptions(scrapper: DeribitClient) -> dict[AbstractSubs
                                               subscription_type=subscription_type,
                                               loop=scrapper.loop)
                     else:
-                        loop.stop()
                         raise ValueError('Unavailable value of depth order book mode')
 
                     result_netting[subscription_type] = database
@@ -263,7 +257,7 @@ class DeribitClient(Thread, WebSocketApp):
     connected_strategy: Optional[AbstractStrategy] = None
     client_currency: Optional[Currency] = None
 
-    def __init__(self, cfg, cfg_path: str, dev_cfg, loopB, client_currency: Currency,
+    def __init__(self, cfg, cfg_path: dict, dev_cfg: dict, loopB, client_currency: Currency,
                  instruments_listed: list = None):
 
         if instruments_listed is None:
@@ -519,76 +513,4 @@ class DeribitClient(Thread, WebSocketApp):
         strategy.connect_client(data_provider=self)
         self.connected_strategy = strategy
 
-
-async def start_scrapper(configuration_path=None):
-    try:
-        configuration = validate_configuration_file("../configuration.yaml")
-        with open('../developerConfiguration.yaml', "r") as ymlfile:
-            devCFG = yaml.load(ymlfile, Loader=yaml.FullLoader)
-        logging.basicConfig(
-            level=configuration['orderBookScrapper']["logger_level"],
-            format=f"%(asctime)s | [%(levelname)s] | [%(threadName)s] | %(name)s | FUNC: (%(filename)s).%(funcName)s(%(lineno)d) | %(message)s",
-            datefmt='%Y-%m-%d %H:%M:%S',
-            handlers=[
-                logging.FileHandler(f"Loging.log"),
-                logging.StreamHandler()])
-        match configuration['orderBookScrapper']["currency"]:
-            case "BTC":
-                _currency = Currency.BITCOIN
-            case "ETH":
-                _currency = Currency.ETHER
-            case _:
-                loop.stop()
-                raise ValueError("Unknown currency")
-
-        derLoop = asyncio.new_event_loop()
-        if not configuration["orderBookScrapper"]["use_configuration_to_select_maturities"]:
-            instruments_list = await scrap_available_instruments(currency=_currency, cfg=configuration['orderBookScrapper'])
-        else:
-            instruments_list = await scrap_available_instruments_by_extended_config(currency=_currency, cfg=configuration['orderBookScrapper'])
-
-
-        deribitWorker = DeribitClient(cfg=configuration, cfg_path=configuration,
-                                      instruments_listed=instruments_list, loopB=derLoop,
-                                      client_currency=_currency, dev_cfg=devCFG)
-
-        deribitWorker.add_order_manager()
-        baseStrategy = EmptyStrategy()
-        deribitWorker.add_strategy(baseStrategy)
-
-        deribitWorker.start()
-        th = threading.Thread(target=derLoop.run_forever)
-        th.start()
-
-        # TODO: implement auth for production
-        if deribitWorker.testMode:
-            while not deribitWorker.auth_complete:
-                continue
-    except Exception as E:
-        print("erorr", E)
-        logging.exception(E)
-    # print("Sending request to place order")
-    # await deribitWorker.order_manager.place_new_order(
-    #     instrument_name="BTC-PERPETUAL",
-    #     order_side=OrderSide.BUY,
-    #     amount=100,
-    #     order_type=OrderType.MARKET,
-    #     order_price=28_000.0
-    # )
-    #
-    # await asyncio.sleep(10)
-    # await deribitWorker.order_manager.place_new_order(
-    #     instrument_name="BTC-PERPETUAL",
-    #     order_side=OrderSide.BUY,
-    #     amount=100,
-    #     order_type=OrderType.LIMIT,
-    #     order_price=28_000.0
-    # )
-
-if __name__ == '__main__':
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.create_task(start_scrapper())
-    loop.run_forever()
-    time.sleep(1)
 
