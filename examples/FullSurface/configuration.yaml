@@ -35,7 +35,7 @@ externalModules:
 orderBookScrapper:
 #    scrapper_body: [OrderBook, Trades, OwnOrderChange, Portfolio]
     scrapper_body: [Trades, OrderBook]
-    depth: 1
+    depth: 10
     test_net: False
     currency: BTC
     enable_traceback: False # False - default
@@ -44,7 +44,7 @@ orderBookScrapper:
     hearth_beat_time: 60
     group_in_limited_order_book: none
     raise_error_at_synthetic: False # False - default
-    logger_level: INFO # WARN | INFO | ERROR
+    logger_level: WARN # WARN | INFO | ERROR
 
     select_all_order_book: True
     only_api_orders_processing: True

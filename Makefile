@@ -9,5 +9,9 @@ activate-dev-venv:
 remove-pip-packages:
 	pip uninstall -y -r <(pip freeze)
 
-twine-upload:
-	twine upload --repository pypi dist/*
+
+documentation:
+	sphinx-apidoc -o docs src/
+	cd docs
+	make html clean
+
