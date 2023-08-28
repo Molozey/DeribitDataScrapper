@@ -32,7 +32,6 @@ class HDF5Daemon(AbstractDataManager):
         try:
             self.path_to_hdf5_file = \
                 f"{self.cfg['hdf5']['hdf5_database_directory']}/{self.subscription_type.__class__.__name__}_{self.subscription_type.tables_names[0]}.h5"
-            print(f"{self.path_to_hdf5_file=}")
             if not os.path.exists(f"{self.cfg['hdf5']['hdf5_database_directory']}/"):
                 os.mkdir(f"{self.cfg['hdf5']['hdf5_database_directory']}/")
                 logging.warning("Create folder for storage")
