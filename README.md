@@ -84,3 +84,6 @@ TODO: add
 
 ## Example (make and connect own strategy)
 TODO: add
+
+## PR Pipeline
+TODO: add
