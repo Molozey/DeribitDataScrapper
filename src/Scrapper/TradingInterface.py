@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import threading
 import requests
@@ -93,6 +94,7 @@ def validate_configuration_file(configuration_path: str) -> dict:
     """
     with open(configuration_path, "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
+    cfg["hdf5"]["hdf5_database_directory"] = f'{os.getcwd()}/{cfg["hdf5"]["hdf5_database_directory"]}'
     if type(cfg["orderBookScrapper"]["depth"]) != int:
         raise TypeError("Invalid type for scrapper configuration")
     if type(cfg["orderBookScrapper"]["test_net"]) != bool:

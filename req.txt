@@ -11,3 +11,4 @@ dash~=2.12.1
 numba~=0.57.1
 matplotlib~=3.7.2
 setuptools~=63.4.3
+tables~=3.8.0
