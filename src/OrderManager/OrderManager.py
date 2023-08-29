@@ -13,6 +13,10 @@ else:
 
 
 class OrderManager(ABC):
+    """
+    Class for managing orders. It is used for matching orders from deribit and orders from storage.
+    It also used for placing new orders.
+    """
     open_orders: Dict[str, Union[OrderStructure, None]]  # Tag -> Structure
     filled_orders: Dict[str, OrderStructure]  # Tag -> Structure
     rejected_orders: Dict[str, OrderStructure]  # Tag -> Structure
@@ -85,6 +89,11 @@ class OrderManager(ABC):
                                   order_price=order_price))
 
     async def process_order_callback(self, callback: dict):
+        """
+        Обработка callback от deribit. Распаковка информации об исполнении ордера.
+        :param callback:
+        :return:
+        """
         await self._extract_order_callback(callback=callback)
 
     async def _extract_order_callback(self, callback: dict):
@@ -113,14 +122,14 @@ class OrderManager(ABC):
         else:
             raise ValueError('no callback')
         _order_id, _order_tag, _open_time, _price, _executed_price, _total_commission, _direction, _order_amount, _filled_amount, _last_update_time, _order_exist_time, _instrument, _order_type, _order_state = await self._extract_values_from_callback(
-            _callback_data)
-        _order = await self.collect_order_object_by_tag(order_tag=_tag)
+            _callback_data) # Extract values from callback
+        _order = await self.collect_order_object_by_tag(order_tag=_tag) # Collect order object by tag
         if type(_order) == OrderStructure:
             await self._if_order_exist(
                 orderStructure=_order, _order_tag= _order_tag, _price=_price, _executed_price=_executed_price,
                 _total_commission=_total_commission, _order_amount=_order_amount, _filled_amount=_filled_amount,
                 _last_update_time=_last_update_time, _order_state=_order_state, _order_exist_time=_order_exist_time
-            )
+            ) # If order exist in structures
         elif type(_order) == int:
             # Order Doesn't Exist in structures
             await self._if_order_dont_exist(

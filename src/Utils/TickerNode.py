@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 
 class TickerNode:
     """
-    Class that will ping strategy block with ping_time frequency
+    Class that will ping strategy block with ping_time frequency (in sec).
     """
     ping_time: float
     last_ping_time: float
@@ -42,6 +42,10 @@ class TickerNode:
         self.connected_strategy = plug_strategy
 
     def run_ticker_node(self):
+        """
+        Run ticker node in separate thread. It will ping strategy block with ping_time frequency (in sec).
+        :return:
+        """
         if self.connected_strategy is None:
             raise ConnectionError("No strategy plugged to tickerNode")
         else:
@@ -49,10 +53,18 @@ class TickerNode:
             self.tickerThread.start()
 
     def run_ticker_node_task(self):
+        """
+        Run ticker node in separate thread. It will ping strategy block with ping_time frequency (in sec).
+        :return:
+        """
         self.ticker_loop = asyncio.new_event_loop()
         self.ticker_loop.run_until_complete(self._ticker_worker())
 
     async def _ticker_worker(self):
+        """
+        Timer that will ping strategy block with ping_time frequency (in sec).
+        :return:
+        """
         while True:
             if time() * 1_000 - self.last_ping_time >= self.ping_time:
                 self.last_ping_time = time() * 1_000

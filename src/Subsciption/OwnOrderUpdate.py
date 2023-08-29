@@ -16,6 +16,9 @@ else:
 
 
 class OwnOrdersSubscription(AbstractSubscription):
+    """
+    Class for user orders subscription. It is used to get information about user orders.
+    """
     tables_names = ["User_orders_test{}"]
 
     def __init__(self, scrapper: scrapper_typing):

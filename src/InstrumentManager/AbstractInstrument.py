@@ -31,6 +31,7 @@ class TradeInformation:
 
 
 class OrderBookChange:
+    """Class for storing order book changes"""
     __slots__ = {'order_book_change_time', 'ask_prices', 'ask_amounts', 'bid_prices', 'bid_amounts'}
     order_book_change_time: Final[float]
     ask_prices: Final[List[float]]
@@ -51,6 +52,10 @@ class OrderBookChange:
 
 
 class AbstractInstrumentInfo(ABC):
+    """
+    Abstract class for information about instrument. Contains all information about instrument strike, maturity, type, name
+    """
+
     instrument_name: str
     instrument_type: Optional[InstrumentType]
 
@@ -69,6 +74,7 @@ class AbstractInstrumentInfo(ABC):
 
     def get_fields(self) -> [str, float, int, int]:
         """
+        Return fields of instrument. Used for saving to database. Order of fields is important.
         :return: ins_index, strike, maturity, type
         """
         if self._instrument_strike is not None:
@@ -89,6 +95,7 @@ class AbstractInstrumentInfo(ABC):
 
     @property
     def instrument_strike(self):
+        """Instrument strike. Only for options | futures. For other instruments return -1"""
         if (self.instrument_type == InstrumentType.CALL_OPTION) or (
                 self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
             return float(self._instrument_strike)
@@ -135,6 +142,7 @@ class AbstractInstrumentInfo(ABC):
 
     def parse_instrument_name(self):
         """
+        Parse instrument name and extract all need info. For options and futures extract strike and maturity
         # TODO: no combo futures implemented.
         :return:
         """
@@ -169,6 +177,9 @@ class AbstractInstrumentInfo(ABC):
 
 
 class AbstractInstrument(ABC):
+    """Abstract class for instrument. Contains all information about instrument and interface for trading.
+    Also contains buffers for last trades and order book changes and user position
+    """
     interface: Union[interface_type]
 
     last_trades: CircularBuffer[TradeInformation]
@@ -203,7 +214,7 @@ class AbstractInstrument(ABC):
 
     def fill_trades_by_cold_start(self, trades_start_data: list[list]):
         """
-
+        Fill trades buffer by cold start data
         :param trades_start_data: Array of [Trade Price, Trade Amount, Trade Time]
         :return:
         """
@@ -211,11 +222,19 @@ class AbstractInstrument(ABC):
             self.last_trades.record(TradeInformation(price=trade[0], amount=trade[1], time=trade[2]))
 
     def fill_order_book_by_cold_start(self):
+        """
+        Fill order book buffer by cold start data
+        :return:
+        """
         logging.error("NotImplementedError")
         raise NotImplementedError
 
     @property
     def instrument_strike(self):
+        """
+        Return strike of instrument. Only for options and futures
+        :return:
+        """
         if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
             return float(self._instrument_strike)
         else:
@@ -224,6 +243,10 @@ class AbstractInstrument(ABC):
 
     @property
     def instrument_maturity(self) -> float:
+        """
+        Return maturity of instrument. Only for options and futures
+        :return:
+        """
         if (self.instrument_type == InstrumentType.CALL_OPTION) or (self.instrument_type == InstrumentType.PUT_OPTION) or (self.instrument_type == InstrumentType.FUTURE):
             return (self._instrument_maturity - datetime.now()) / timedelta(days=365)
         else:
@@ -238,10 +261,26 @@ class AbstractInstrument(ABC):
         return self._instrument_maturity
 
     def place_last_trade(self, trade_price: float, trade_amount: float, trade_time: float = None):
+        """
+        Place last trade to trades buffer
+        :param trade_price: type float
+        :param trade_amount: type float
+        :param trade_time: type float
+        :return:
+        """
         self.last_trades.record(TradeInformation(price=trade_price, amount=trade_amount, time=trade_time))
 
     def place_order_book_change(self, ask_prices: List[float], ask_amounts: List[float],
                                 bid_prices: List[float], bid_amounts: List[float], time: float = None):
+        """
+        Place order book change to order book buffer
+        :param ask_prices: list of ask prices. type float
+        :param ask_amounts: list of ask amounts. type float
+        :param bid_prices: list of bid prices. type float
+        :param bid_amounts: list of bid amounts. type float
+        :param time: type float
+        :return:
+        """
         self.last_order_book_changes.record(
             OrderBookChange(ask_prices=ask_prices, ask_amounts=ask_amounts, bid_prices=bid_prices,
                             bid_amounts=bid_amounts, time=time)
@@ -290,7 +329,7 @@ class AbstractInstrument(ABC):
 
     def parse_instrument_name(self):
         """
-        # TODO: no combo futures implemented.
+        Parse instrument name and extract all need info.
         :return:
         """
         try:

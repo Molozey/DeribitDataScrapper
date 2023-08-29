@@ -1,7 +1,9 @@
+# This file contains all messages that can be sent to Deribit API.
 import warnings
 
 import Utils.AvailableCurrencies as AvailableCurrencies
 from .OrderStructure import OrderType, OrderSide
+
 
 def hello_message() -> dict:
     _msg = \

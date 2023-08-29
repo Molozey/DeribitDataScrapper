@@ -2,6 +2,9 @@ from enum import Enum
 
 
 class InstrumentType(Enum):
+    """
+    InstrumentType is an enumeration of the different types of instruments that can be traded on the exchange.
+    """
     __slots__ = {"_instrument_type"}
     _instrument_type: str
 

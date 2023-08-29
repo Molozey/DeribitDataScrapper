@@ -19,7 +19,6 @@ def get_requirements(fname):
         return [line.strip() for line in f.read().split("\n") if line.strip() != ""]
 
 
-
 if __name__ == '__main__':
     print(find_packages())
     setup(

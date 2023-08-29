@@ -17,6 +17,9 @@ else:
 
 
 class TradesSubscription(AbstractSubscription):
+    """
+    Class for subscription about trades.
+    """
     tables_names = ["Trades_table_{}"]
 
     def __init__(self, scrapper: scrapper_typing):
