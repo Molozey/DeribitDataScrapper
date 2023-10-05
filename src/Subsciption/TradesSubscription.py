@@ -60,7 +60,7 @@ class TradesSubscription(AbstractSubscription):
             _timestamp = data_object['timestamp']
             _ins_idx, _instrument_strike, _instrument_maturity, _instrument_type = self.instrument_name_instrument_id_map[
                 data_object['instrument_name']].get_fields()
-            _trade_id = data_object['trade_id']
+            _trade_id = data_object['trade_id'] if data_object['trade_id'].isdigit() else data_object['trade_id'][4:]
             _price = data_object["price"]
             _direction = 1 if data_object["direction"] == "buy" else -1
             _amount = data_object["amount"]
