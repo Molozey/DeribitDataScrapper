@@ -44,14 +44,14 @@ orderBookScrapper:
     hearth_beat_time: 60
     group_in_limited_order_book: none
     raise_error_at_synthetic: False # False - default
-    logger_level: WARN # WARN | INFO | ERROR
+    logger_level: INFO # WARN | INFO | ERROR
 
     select_all_order_book: True
     only_api_orders_processing: True
 
-    database_daemon: hdf5
+    database_daemon: mysql
 
-    add_extra_instruments: ["BTC-PERPETUAL"]
+    add_extra_instruments: [""]
 #     add_extra_instruments: ['BTC-5MAY23-28000-C', 'BTC-5MAY23-28000-P', 'BTC-5MAY23-30000-C', 'BTC-5MAY23-30500-P', 'BTC-5MAY23-50000-C', 'BTC-5MAY23-50000-P', 'BTC-5MAY23-51000-C', 'BTC-5MAY23-51000-P', 'BTC-5MAY23', 'BTC-PERPETUAL']
 #     add_extra_instruments: ['BTC-30JUN23-20000-C', 'BTC-30JUN23-20000-P', 'BTC-30JUN23-22000-C', 'BTC-30JUN23-22000-P', 'BTC-30JUN23-24000-C', 'BTC-30JUN23']
     # Need to be true if you need to select maturities by configuration file.
