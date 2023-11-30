@@ -162,4 +162,4 @@ cython_debug/
 /venv
 /.pypirc
 
-*.log
+/*.log
