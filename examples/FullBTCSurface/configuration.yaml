@@ -35,7 +35,7 @@ externalModules:
 orderBookScrapper:
 #    scrapper_body: [OrderBook, Trades, OwnOrderChange, Portfolio]
     scrapper_body: [Trades, OrderBook]
-    depth: 5
+    depth: 10
     test_net: False
     currency: BTC
     enable_traceback: False # False - default

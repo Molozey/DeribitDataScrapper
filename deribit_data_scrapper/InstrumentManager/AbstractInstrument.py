@@ -2,6 +2,7 @@ import logging
 from abc import ABC
 from datetime import datetime
 from datetime import timedelta
+from functools import cached_property
 from time import time as sys_time
 from typing import Final
 from typing import List
@@ -98,7 +99,14 @@ class AbstractInstrumentInfo(ABC):
 
         self.parse_instrument_name()  # Parse instrument name and extract all need info
 
-    def get_fields(self) -> [str, float, int, int]:
+    @cached_property
+    def get_int_instrument_index(self):
+        if "BTC" in self.instrument_name:
+            return 0
+        elif "ETH" in self.instrument_name:
+            return 1
+
+    def get_fields(self) -> [int, float, int, int]:
         """
         Return fields of instrument. Used for saving to database. Order of fields is important.
         :return: ins_index, strike, maturity, type
@@ -117,7 +125,7 @@ class AbstractInstrumentInfo(ABC):
             _type = self.instrument_type.number
         else:
             _type = -1
-        return [self.instrument_name[:3], _strike, _maturity, _type]
+        return [self.get_int_instrument_index, _strike, _maturity, _type]
 
     @property
     def instrument_strike(self):

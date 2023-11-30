@@ -104,8 +104,8 @@ async def start_scrapper(configuration_path=None):
                 raise ValueError("Unknown currency")
 
         derLoop = asyncio.new_event_loop()
-        instruments_list = await scrap_all_instruments_from_currency(currency=_currency, cfg=configuration['orderBookScrapper'])
-
+        # instruments_list = await scrap_all_instruments_from_currency(currency=_currency, cfg=configuration['orderBookScrapper'])
+        instruments_list = ["BTC-PERPETUAL"]
         deribitWorker = DeribitClient(cfg=configuration, cfg_path=configuration,
                                       instruments_listed=instruments_list, loopB=derLoop,
                                       client_currency=_currency, dev_cfg=devCFG)
