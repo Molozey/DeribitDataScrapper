@@ -1,7 +1,7 @@
 import logging
 
-from Scrapper.TradingInterface import validate_configuration_file, DeribitClient
-from Utils.AvailableCurrencies import Currency
+from deribit_data_scrapper.Scrapper.TradingInterface import validate_configuration_file, DeribitClient
+from deribit_data_scrapper.Utils.AvailableCurrencies import Currency
 import asyncio
 import threading
 import yaml

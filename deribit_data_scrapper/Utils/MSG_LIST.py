@@ -1,7 +1,7 @@
 # This file contains all messages that can be sent to Deribit API.
 import warnings
 
-import Utils.AvailableCurrencies as AvailableCurrencies
+import deribit_data_scrapper.Utils.AvailableCurrencies as AvailableCurrencies
 from .OrderStructure import OrderType, OrderSide
 
 

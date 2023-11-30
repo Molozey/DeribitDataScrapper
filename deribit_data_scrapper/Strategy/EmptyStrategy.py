@@ -1,13 +1,9 @@
 import asyncio
-import logging
-from typing import Optional
 
-from InstrumentManager import AbstractInstrument
-from Strategy.AbstractStrategy import AbstractStrategy
-from Utils import OrderStructure, OrderType, TickerNode
-from ExternalModules import SabrCalibration
-
-import yaml
+from deribit_data_scrapper.ExternalModules import SabrCalibration
+from deribit_data_scrapper.InstrumentManager import AbstractInstrument
+from deribit_data_scrapper.Strategy.AbstractStrategy import AbstractStrategy
+from deribit_data_scrapper.Utils import OrderStructure, TickerNode
 
 
 class EmptyStrategy(AbstractStrategy):

@@ -3,13 +3,13 @@ import warnings
 
 import yaml
 
-from Utils import Currency
+from deribit_data_scrapper.Utils import Currency
 
 
 async def scrap_available_instruments_by_extended_config(currency: Currency, cfg):
-    from SyncLib.AvailableRequests import get_instruments_by_currency_request
-    from Utils import InstrumentType, get_ticker_by_instrument_request
-    from SyncLib.Scrapper import send_request
+    from deribit_data_scrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request
+    from deribit_data_scrapper.Utils import InstrumentType, get_ticker_by_instrument_request
+    from deribit_data_scrapper.SyncLib.Scrapper import send_request
     import pandas as pd
     import numpy as np
 

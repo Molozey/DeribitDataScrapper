@@ -1,5 +1,5 @@
-from Utils.AvailableCurrencies import Currency
-from Utils.AvailableInstrumentType import InstrumentType
+from deribit_data_scrapper.Utils.AvailableCurrencies import Currency
+from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
 from Scrapper import send_request, send_batch_of_requests
 from AvailableRequests import (
     get_instruments_by_currency_request,

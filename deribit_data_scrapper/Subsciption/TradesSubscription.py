@@ -1,5 +1,5 @@
-from Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
-from Utils import *
+from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
+from deribit_data_scrapper.Utils import *
 
 
 from numpy import ndarray
@@ -8,7 +8,7 @@ from typing import List, TYPE_CHECKING
 import numpy as np
 
 if TYPE_CHECKING:
-    from Scrapper.TradingInterface import DeribitClient
+    from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
 
     scrapper_typing = DeribitClient
 else:

@@ -1,11 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict, Optional
-from Utils import OrderStructure
-from InstrumentManager import AbstractInstrument
-from ExternalModules import AbstractExternal
+from deribit_data_scrapper.Utils import OrderStructure
+from deribit_data_scrapper.InstrumentManager import AbstractInstrument
+from deribit_data_scrapper.ExternalModules import AbstractExternal
 
 if TYPE_CHECKING:
-    from Scrapper.TradingInterface import DeribitClient
+    from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
 
     scrapper_type = DeribitClient
 else:

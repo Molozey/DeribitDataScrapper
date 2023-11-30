@@ -1,27 +1,21 @@
-import datetime
 import logging
-from threading import Thread
 import time
+from threading import Thread
+from typing import Tuple
 
-import numpy as np
 import numba as nb
-
-from dash import Dash, dcc, html, Input, Output, State
-import plotly.express as px
+import numpy as np
 import plotly.graph_objs as go
+from dash import Dash, dcc, html, Input, Output
 
-from typing import List, Tuple
-
-from Utils.AvailableInstrumentType import InstrumentType
+from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
 
 try:
     from ..AbstractExternal import AbstractExternal
     from ...InstrumentManager import AbstractInstrument
 except ImportError:
-    from ExternalModules.AbstractExternal import AbstractExternal
-    from InstrumentManager.AbstractInstrument import AbstractInstrument
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+    from deribit_data_scrapper.ExternalModules.AbstractExternal import AbstractExternal
+    from deribit_data_scrapper.InstrumentManager.AbstractInstrument import AbstractInstrument
 
 
 # BLOCK WITH NUMBA FUNC. Dmitry Bazanov, Roland Grinis, Ivan Novikov.

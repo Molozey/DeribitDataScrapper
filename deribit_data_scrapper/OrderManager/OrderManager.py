@@ -1,7 +1,7 @@
 import logging
 from abc import ABC
 from typing import Dict, TYPE_CHECKING, List, Union
-from Utils import (
+from deribit_data_scrapper.Utils import (
     OrderStructure,
     OrderType,
     OrderState,
@@ -13,7 +13,7 @@ from Utils import (
 )
 
 if TYPE_CHECKING:
-    from Scrapper.TradingInterface import DeribitClient
+    from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
 
     deribitClientType = DeribitClient
 else:

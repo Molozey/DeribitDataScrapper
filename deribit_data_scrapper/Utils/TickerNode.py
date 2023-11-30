@@ -8,7 +8,7 @@ from time import time
 
 strategyType = object
 if TYPE_CHECKING:
-    from Strategy.AbstractStrategy import AbstractStrategy
+    from deribit_data_scrapper.Strategy.AbstractStrategy import AbstractStrategy
 
     strategyType = AbstractStrategy
 
@@ -81,7 +81,7 @@ class TickerNode:
 
 
 if __name__ == "__main__":
-    from TradingInterfaceBot.Strategy.BasicStrategy import BaseStrategy
+    from deribit_data_scrapper.Strategy.BasicStrategy import BaseStrategy
 
     ticker = TickerNode(ping_time=1)
 

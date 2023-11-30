@@ -1,8 +1,8 @@
 import asyncio
 from pandas import DataFrame, HDFStore
 
-from DataBase.AbstractDataSaverManager import AbstractDataManager
-from Subsciption.AbstractSubscription import AbstractSubscription
+from deribit_data_scrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
+from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription
 
 from typing import Optional
 import logging

@@ -1,37 +1,30 @@
 from __future__ import annotations
 
+import asyncio
+import json
+import logging
 import os
-import sys
-import threading
+import time
+from datetime import datetime
+from threading import Thread
+from typing import Optional, Union
+
 import requests
+import yaml
+from websocket import WebSocketApp, enableTrace, ABNF
+
+from deribit_data_scrapper.DataBase import *
+from deribit_data_scrapper.InstrumentManager import AbstractInstrumentInfo
+from deribit_data_scrapper.InstrumentManager import InstrumentManager
+from deribit_data_scrapper.OrderManager import OrderManager
+from deribit_data_scrapper.Strategy import *
+from deribit_data_scrapper.Subsciption import *
+from deribit_data_scrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
+from deribit_data_scrapper.Utils import *
+
 
 # import nest_asyncio
 # nest_asyncio.apply()
-
-import asyncio
-import time
-from typing import Optional, Union
-
-from InstrumentManager import AbstractInstrumentInfo
-from DataBase import *
-from OrderManager import OrderManager
-from Utils import *
-from Subsciption import *
-from Strategy import *
-from InstrumentManager import InstrumentManager
-
-from SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from Scrapper.ScrapperWithPreSelectedMaturities import (
-    scrap_available_instruments_by_extended_config,
-)
-
-from websocket import WebSocketApp, enableTrace, ABNF
-from threading import Thread
-
-from datetime import datetime
-import logging
-import json
-import yaml
 
 
 async def scrap_available_instruments(currency: Currency, cfg):
@@ -42,9 +35,9 @@ async def scrap_available_instruments(currency: Currency, cfg):
     :param cfg: файл конфигурации бота
     :return: LIST[Instrument-name]
     """
-    from SyncLib.AvailableRequests import get_instruments_by_currency_request
-    from Utils.AvailableInstrumentType import InstrumentType
-    from SyncLib.Scrapper import send_request
+    from deribit_data_scrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request
+    from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
+    from deribit_data_scrapper.SyncLib.Scrapper import send_request
     import pandas as pd
     import numpy as np
 

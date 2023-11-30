@@ -5,11 +5,11 @@ from enum import Enum
 from numpy import ndarray
 from pandas import DataFrame
 
-from Utils.MSG_LIST import auth_message
+from deribit_data_scrapper.Utils.MSG_LIST import auth_message
 
 if TYPE_CHECKING:
-    from Scrapper.TradingInterface import DeribitClient
-    from DataBase.AbstractDataSaverManager import AbstractDataManager
+    from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
+    from deribit_data_scrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
 
     scrapper_typing = DeribitClient
     database_typing = AbstractDataManager

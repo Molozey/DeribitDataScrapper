@@ -1,7 +1,7 @@
-from Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
+from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
 
-from Utils import *
-from Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
+from deribit_data_scrapper.Utils import *
+from deribit_data_scrapper.Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
 
 
 from numpy import ndarray
@@ -12,7 +12,7 @@ import logging
 import numpy as np
 
 if TYPE_CHECKING:
-    from Scrapper.TradingInterface import DeribitClient
+    from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
 
     scrapper_typing = DeribitClient
 else:

@@ -1,5 +1,5 @@
-from Utils.AvailableInstrumentType import InstrumentType
-from Utils import AvailableInstruments, AvailableCurrencies
+from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
+from deribit_data_scrapper.Utils import AvailableInstruments, AvailableCurrencies
 import json
 
 

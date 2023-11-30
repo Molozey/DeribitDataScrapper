@@ -7,11 +7,11 @@ from .AbstractInstrument import AbstractInstrument
 from typing import TYPE_CHECKING, List, Dict, Final
 import yaml
 
-from Utils import ConfigRoot, get_positions_request, Currency, auth_message
+from deribit_data_scrapper.Utils import ConfigRoot, get_positions_request, Currency, auth_message
 
 if TYPE_CHECKING:
-    from Strategy import AbstractStrategy
-    from Scrapper.TradingInterface import DeribitClient
+    from deribit_data_scrapper.Strategy import AbstractStrategy
+    from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
 
     strategy_typing = AbstractStrategy
     interface_typing = DeribitClient
