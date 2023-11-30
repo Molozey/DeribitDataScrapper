@@ -1,6 +1,6 @@
 mysql:
     host: localhost
-    user: root
+    user: db-writer
     password: password
     database: DeribitOrderBook
     use_bathes_to_record: False
