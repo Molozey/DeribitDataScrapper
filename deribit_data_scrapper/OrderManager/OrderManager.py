@@ -1,16 +1,18 @@
 import logging
 from abc import ABC
-from typing import Dict, TYPE_CHECKING, List, Union
-from deribit_data_scrapper.Utils import (
-    OrderStructure,
-    OrderType,
-    OrderState,
-    CircularBuffer,
-    convert_deribit_order_type_to_structure,
-    convert_deribit_order_status_to_structure,
-    OrderSide,
-    order_request,
-)
+from typing import Dict
+from typing import List
+from typing import TYPE_CHECKING
+from typing import Union
+
+from deribit_data_scrapper.Utils import CircularBuffer
+from deribit_data_scrapper.Utils import convert_deribit_order_status_to_structure
+from deribit_data_scrapper.Utils import convert_deribit_order_type_to_structure
+from deribit_data_scrapper.Utils import order_request
+from deribit_data_scrapper.Utils import OrderSide
+from deribit_data_scrapper.Utils import OrderState
+from deribit_data_scrapper.Utils import OrderStructure
+from deribit_data_scrapper.Utils import OrderType
 
 if TYPE_CHECKING:
     from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient

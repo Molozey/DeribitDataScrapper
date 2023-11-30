@@ -8,16 +8,16 @@ import threading
 
 import yaml
 
-from DataBase import *
-from OrderManager import OrderManager
-from Utils import *
-from Subsciption import *
-from Strategy import *
-from InstrumentManager import InstrumentManager
+from deribit_data_scrapper.DataBase import *
+from deribit_data_scrapper.OrderManager import OrderManager
+from deribit_data_scrapper.Utils import *
+from deribit_data_scrapper.Subsciption import *
+from deribit_data_scrapper.Strategy import *
+from deribit_data_scrapper.InstrumentManager import InstrumentManager
 
-from SyncLib.AvailableRequests import get_ticker_by_instrument_request
-from Scrapper.ScrapperWithPreSelectedMaturities import scrap_available_instruments_by_extended_config
-from Scrapper.TradingInterface import validate_configuration_file, DeribitClient, scrap_available_instruments
+from deribit_data_scrapper.SyncLib.AvailableRequests import get_ticker_by_instrument_request
+from deribit_data_scrapper.Scrapper.ScrapperWithPreSelectedMaturities import scrap_available_instruments_by_extended_config
+from deribit_data_scrapper.Scrapper.TradingInterface import validate_configuration_file, DeribitClient, scrap_available_instruments
 
 
 async def start_scrapper(configuration_path=None):

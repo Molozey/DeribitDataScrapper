@@ -1,6 +1,8 @@
-from abc import ABC, abstractmethod
-from deribit_data_scrapper.InstrumentManager import AbstractInstrument
+from abc import ABC
+from abc import abstractmethod
 from typing import TYPE_CHECKING
+
+from deribit_data_scrapper.InstrumentManager import AbstractInstrument
 
 strategyType = object
 if TYPE_CHECKING:

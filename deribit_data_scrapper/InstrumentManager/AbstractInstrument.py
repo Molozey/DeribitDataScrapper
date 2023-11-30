@@ -1,10 +1,16 @@
 import logging
 from abc import ABC
-from datetime import datetime, timedelta
+from datetime import datetime
+from datetime import timedelta
 from time import time as sys_time
-from typing import TYPE_CHECKING, Union, List, Final, Optional
+from typing import Final
+from typing import List
+from typing import Optional
+from typing import TYPE_CHECKING
+from typing import Union
 
-from deribit_data_scrapper.Utils import CircularBuffer, InstrumentType
+from deribit_data_scrapper.Utils import CircularBuffer
+from deribit_data_scrapper.Utils import InstrumentType
 
 if TYPE_CHECKING:
     from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient

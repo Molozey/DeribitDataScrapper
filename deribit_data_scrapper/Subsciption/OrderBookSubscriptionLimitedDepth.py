@@ -1,15 +1,17 @@
-from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
+import logging
+from functools import partial
+from typing import List
+from typing import TYPE_CHECKING
 
+import numpy as np
+from numpy import ndarray
+from pandas import DataFrame
+
+from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription
+from deribit_data_scrapper.Subsciption.AbstractSubscription import flatten
+from deribit_data_scrapper.Subsciption.AbstractSubscription import RequestTypo
 from deribit_data_scrapper.Utils import *
 from deribit_data_scrapper.Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
-
-
-from numpy import ndarray
-from functools import partial
-from pandas import DataFrame
-from typing import List, TYPE_CHECKING
-import logging
-import numpy as np
 
 if TYPE_CHECKING:
     from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient

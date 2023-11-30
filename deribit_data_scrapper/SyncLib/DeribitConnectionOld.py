@@ -1,12 +1,14 @@
 # Old Deribit API. With it's endpoints we can get historical data from last 5 years.
 
+import time
+from pprint import pprint
+
+import pandas as pd
 import requests
+from tqdm import tqdm
+
 from deribit_data_scrapper.Utils.AvailableCurrencies import Currency
 from deribit_data_scrapper.Utils.AvailableInstruments import Instrument
-from pprint import pprint
-import pandas as pd
-from tqdm import tqdm
-import time
 
 
 class DeribitConnectionOld:

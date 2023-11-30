@@ -1,6 +1,8 @@
-from abc import ABC, abstractmethod
-from typing import List, TYPE_CHECKING
+from abc import ABC
+from abc import abstractmethod
 from enum import Enum
+from typing import List
+from typing import TYPE_CHECKING
 
 from numpy import ndarray
 from pandas import DataFrame

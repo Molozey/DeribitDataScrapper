@@ -1,12 +1,10 @@
-import logging
-
-from deribit_data_scrapper.Scrapper.TradingInterface import (
-    validate_configuration_file,
-    DeribitClient,
-)
-from deribit_data_scrapper.Utils.AvailableCurrencies import Currency
 import asyncio
+import logging
 import threading
+
+from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
+from deribit_data_scrapper.Scrapper.TradingInterface import validate_configuration_file
+from deribit_data_scrapper.Utils.AvailableCurrencies import Currency
 
 
 async def scrap_all_instruments_from_currency(currency: Currency, cfg):

@@ -3,14 +3,12 @@ import time
 from typing import Optional
 
 from deribit_data_scrapper.Strategy.AbstractStrategy import AbstractStrategy
-from deribit_data_scrapper.Utils import (
-    OrderStructure,
-    OrderType,
-    convert_deribit_order_type_to_structure,
-    convert_deribit_order_status_to_structure,
-    OrderState,
-)
+from deribit_data_scrapper.Utils import convert_deribit_order_status_to_structure
+from deribit_data_scrapper.Utils import convert_deribit_order_type_to_structure
 from deribit_data_scrapper.Utils import MSG_LIST
+from deribit_data_scrapper.Utils import OrderState
+from deribit_data_scrapper.Utils import OrderStructure
+from deribit_data_scrapper.Utils import OrderType
 
 
 class BaseStrategy(AbstractStrategy):

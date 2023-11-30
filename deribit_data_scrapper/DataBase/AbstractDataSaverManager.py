@@ -1,7 +1,9 @@
 import asyncio
 import logging
-from abc import ABC, abstractmethod
-from typing import Dict, Optional
+from abc import ABC
+from abc import abstractmethod
+from typing import Dict
+from typing import Optional
 
 import numpy as np
 from numpy import ndarray

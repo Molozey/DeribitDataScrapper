@@ -2,12 +2,18 @@
 import asyncio
 import logging
 from threading import Thread
+from typing import Dict
+from typing import Final
+from typing import List
+from typing import TYPE_CHECKING
 
-from .AbstractInstrument import AbstractInstrument
-from typing import TYPE_CHECKING, List, Dict, Final
 import yaml
 
-from deribit_data_scrapper.Utils import ConfigRoot, get_positions_request, Currency, auth_message
+from deribit_data_scrapper.Utils import auth_message
+from deribit_data_scrapper.Utils import ConfigRoot
+from deribit_data_scrapper.Utils import Currency
+from deribit_data_scrapper.Utils import get_positions_request
+from .AbstractInstrument import AbstractInstrument
 
 if TYPE_CHECKING:
     from deribit_data_scrapper.Strategy import AbstractStrategy

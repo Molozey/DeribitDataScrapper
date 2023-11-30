@@ -1,6 +1,8 @@
-from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
-from deribit_data_scrapper.Utils import AvailableInstruments, AvailableCurrencies
 import json
+
+from deribit_data_scrapper.Utils import AvailableCurrencies
+from deribit_data_scrapper.Utils import AvailableInstruments
+from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
 
 
 def construct_book_summary_by_instrument(

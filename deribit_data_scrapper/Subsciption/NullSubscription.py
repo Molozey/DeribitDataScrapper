@@ -1,9 +1,10 @@
-from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten
+from functools import partial
 
 from numpy import ndarray
-from functools import partial
 from pandas import DataFrame
 
+from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription
+from deribit_data_scrapper.Subsciption.AbstractSubscription import flatten
 from deribit_data_scrapper.Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
 
 

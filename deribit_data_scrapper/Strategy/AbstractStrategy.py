@@ -1,8 +1,12 @@
-from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict, Optional
-from deribit_data_scrapper.Utils import OrderStructure
-from deribit_data_scrapper.InstrumentManager import AbstractInstrument
+from abc import ABC
+from abc import abstractmethod
+from typing import Dict
+from typing import Optional
+from typing import TYPE_CHECKING
+
 from deribit_data_scrapper.ExternalModules import AbstractExternal
+from deribit_data_scrapper.InstrumentManager import AbstractInstrument
+from deribit_data_scrapper.Utils import OrderStructure
 
 if TYPE_CHECKING:
     from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient

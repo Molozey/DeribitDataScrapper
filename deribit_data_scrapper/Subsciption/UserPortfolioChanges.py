@@ -1,12 +1,13 @@
 import time
-
-from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription, flatten, RequestTypo
-from deribit_data_scrapper.Utils import *
+from typing import List
+from typing import TYPE_CHECKING
 
 from numpy import ndarray
-from pandas import DataFrame
-from typing import List, TYPE_CHECKING
-import numpy as np
+
+from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription
+from deribit_data_scrapper.Subsciption.AbstractSubscription import flatten
+from deribit_data_scrapper.Subsciption.AbstractSubscription import RequestTypo
+from deribit_data_scrapper.Utils import *
 
 if TYPE_CHECKING:
     from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient

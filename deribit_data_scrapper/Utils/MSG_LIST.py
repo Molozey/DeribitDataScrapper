@@ -2,7 +2,8 @@
 import warnings
 
 import deribit_data_scrapper.Utils.AvailableCurrencies as AvailableCurrencies
-from .OrderStructure import OrderType, OrderSide
+from .OrderStructure import OrderSide
+from .OrderStructure import OrderType
 
 
 def hello_message() -> dict:

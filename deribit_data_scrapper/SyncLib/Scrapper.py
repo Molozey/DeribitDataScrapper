@@ -1,11 +1,10 @@
 import asyncio
-import time
-
 import json
+import time
 from pprint import pprint
-from tqdm import tqdm
+
 import websockets
-import yaml
+from tqdm import tqdm
 
 # from AvailableRequests import test_message
 global URL_TO_SCRAP

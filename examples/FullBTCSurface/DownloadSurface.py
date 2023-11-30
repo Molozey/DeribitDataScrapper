@@ -16,9 +16,9 @@ async def scrap_all_instruments_from_currency(currency: Currency, cfg):
     :param cfg: файл конфигурации бота
     :return: LIST[Instrument-name]
     """
-    from SyncLib.AvailableRequests import get_instruments_by_currency_request, get_ticker_by_instrument_request
-    from Utils.AvailableInstrumentType import InstrumentType
-    from SyncLib.Scrapper import send_request
+    from deribit_data_scrapper.SyncLib.AvailableRequests import get_instruments_by_currency_request, get_ticker_by_instrument_request
+    from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
+    from deribit_data_scrapper.SyncLib.Scrapper import send_request
     import pandas as pd
     import numpy as np
     make_subscriptions_list = await send_request(get_instruments_by_currency_request(currency=currency,

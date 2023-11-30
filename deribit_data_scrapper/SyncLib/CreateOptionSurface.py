@@ -1,17 +1,16 @@
+from datetime import datetime
+from pprint import pprint
+from typing import Callable
+
+import numpy as np
+import pandas as pd
+
+from AvailableRequests import get_instruments_by_currency_request
+from AvailableRequests import get_ticker_by_instrument_request
 from deribit_data_scrapper.Utils.AvailableCurrencies import Currency
 from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
-from Scrapper import send_request, send_batch_of_requests
-from AvailableRequests import (
-    get_instruments_by_currency_request,
-    get_ticker_by_instrument_request,
-)
-from pprint import pprint
-import pandas as pd
-import numpy as np
-from datetime import datetime
-
-
-from typing import Callable
+from Scrapper import send_batch_of_requests
+from Scrapper import send_request
 
 global SAVE_STORAGE_NAME
 

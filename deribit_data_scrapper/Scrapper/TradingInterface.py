@@ -7,11 +7,14 @@ import os
 import time
 from datetime import datetime
 from threading import Thread
-from typing import Optional, Union
+from typing import Optional
+from typing import Union
 
 import requests
 import yaml
-from websocket import WebSocketApp, enableTrace, ABNF
+from websocket import ABNF
+from websocket import enableTrace
+from websocket import WebSocketApp
 
 from deribit_data_scrapper.DataBase import *
 from deribit_data_scrapper.InstrumentManager import AbstractInstrumentInfo

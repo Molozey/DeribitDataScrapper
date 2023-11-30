@@ -6,7 +6,11 @@ from typing import Tuple
 import numba as nb
 import numpy as np
 import plotly.graph_objs as go
-from dash import Dash, dcc, html, Input, Output
+from dash import Dash
+from dash import dcc
+from dash import html
+from dash import Input
+from dash import Output
 
 from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
 

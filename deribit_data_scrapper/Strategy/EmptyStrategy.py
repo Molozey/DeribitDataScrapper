@@ -3,7 +3,8 @@ import asyncio
 from deribit_data_scrapper.ExternalModules import SabrCalibration
 from deribit_data_scrapper.InstrumentManager import AbstractInstrument
 from deribit_data_scrapper.Strategy.AbstractStrategy import AbstractStrategy
-from deribit_data_scrapper.Utils import OrderStructure, TickerNode
+from deribit_data_scrapper.Utils import OrderStructure
+from deribit_data_scrapper.Utils import TickerNode
 
 
 class EmptyStrategy(AbstractStrategy):

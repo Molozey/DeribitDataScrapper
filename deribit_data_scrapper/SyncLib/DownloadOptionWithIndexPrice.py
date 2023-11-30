@@ -1,14 +1,14 @@
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+
+from AvailableRequests import get_instruments_by_currency_request
+from AvailableRequests import get_ticker_by_instrument_request
+from deribit_data_scrapper.SyncLib.DeribitConnectionOld import DeribitConnectionOld
 from deribit_data_scrapper.Utils.AvailableCurrencies import Currency
 from deribit_data_scrapper.Utils.AvailableInstrumentType import InstrumentType
 from Scrapper import send_request
-from AvailableRequests import (
-    get_instruments_by_currency_request,
-    get_ticker_by_instrument_request,
-)
-from deribit_data_scrapper.SyncLib.DeribitConnectionOld import DeribitConnectionOld
-import pandas as pd
-import numpy as np
-from datetime import datetime
 
 
 def download_data_for_SABR(currency: Currency, save_information=False):

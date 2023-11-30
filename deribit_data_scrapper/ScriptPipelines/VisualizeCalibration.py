@@ -8,11 +8,9 @@ import time
 from deribit_data_scrapper.Scrapper.ScrapperWithPreSelectedMaturities import (
     scrap_available_instruments_by_extended_config,
 )
-from deribit_data_scrapper.Scrapper.TradingInterface import (
-    validate_configuration_file,
-    DeribitClient,
-    scrap_available_instruments,
-)
+from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
+from deribit_data_scrapper.Scrapper.TradingInterface import scrap_available_instruments
+from deribit_data_scrapper.Scrapper.TradingInterface import validate_configuration_file
 from deribit_data_scrapper.Strategy import *
 from deribit_data_scrapper.Utils import *
 

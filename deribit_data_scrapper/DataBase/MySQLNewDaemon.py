@@ -6,9 +6,10 @@ from datetime import datetime
 from typing import Optional
 
 import mysql.connector as connector
-from deribit_data_scrapper.Utils import *
+
 from deribit_data_scrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
 from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription
+from deribit_data_scrapper.Utils import *
 
 
 class MySqlDaemon(AbstractDataManager):
