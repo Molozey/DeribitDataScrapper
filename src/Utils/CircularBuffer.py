@@ -4,6 +4,11 @@ T = TypeVar("T")
 
 
 class CircularBuffer(Generic[T]):
+    """
+    Circular buffer implementation.
+    It is used to store the last N elements. If the buffer is full, the oldest element is removed.
+    Used in the order book and trades subscriptions to store the last N elements.
+    """
     _data: List[T]
 
     def __init__(self, size):

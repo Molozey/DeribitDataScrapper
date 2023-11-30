@@ -37,7 +37,7 @@ orderBookScrapper:
     scrapper_body: [Trades, OrderBook]
     depth: 10
     test_net: False
-    currency: ETH
+    currency: BTC
     enable_traceback: False # False - default
     enable_database_record: True
     clean_database: False
@@ -51,7 +51,7 @@ orderBookScrapper:
 
     database_daemon: mysql
 
-    add_extra_instruments: ["ETH-PERPETUAL"]
+    add_extra_instruments: ["BTC-PERPETUAL"]
 #     add_extra_instruments: ['BTC-5MAY23-28000-C', 'BTC-5MAY23-28000-P', 'BTC-5MAY23-30000-C', 'BTC-5MAY23-30500-P', 'BTC-5MAY23-50000-C', 'BTC-5MAY23-50000-P', 'BTC-5MAY23-51000-C', 'BTC-5MAY23-51000-P', 'BTC-5MAY23', 'BTC-PERPETUAL']
 #     add_extra_instruments: ['BTC-30JUN23-20000-C', 'BTC-30JUN23-20000-P', 'BTC-30JUN23-22000-C', 'BTC-30JUN23-22000-P', 'BTC-30JUN23-24000-C', 'BTC-30JUN23']
     # Need to be true if you need to select maturities by configuration file.

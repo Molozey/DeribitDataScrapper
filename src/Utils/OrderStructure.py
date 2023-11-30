@@ -8,6 +8,9 @@ class OrderSide(Enum):
 
 
 class OrderType(Enum):
+    """
+    Order type enum class to convert deribit naming to structure naming.
+    """
     deribit_name: str
 
     def __init__(self, deribit_naming: str):
@@ -24,6 +27,9 @@ class OrderType(Enum):
 
 
 class OrderState(Enum):
+    """
+    Order state enum class to convert deribit naming to structure naming.
+    """
     deribit_name: str
 
     def __init__(self, deribit_naming: str):
@@ -37,6 +43,11 @@ class OrderState(Enum):
 
 
 def convert_deribit_order_type_to_structure(der_ans: str) -> OrderType:
+    """
+    Convert deribit order type to structure order type.
+    :param der_ans:
+    :return:
+    """
     match der_ans:
         case "limit":
             return OrderType.LIMIT
@@ -47,6 +58,11 @@ def convert_deribit_order_type_to_structure(der_ans: str) -> OrderType:
 
 
 def convert_deribit_order_status_to_structure(der_ans: str) -> OrderState:
+    """
+    Convert deribit order status to structure order status.
+    :param der_ans:
+    :return:
+    """
     match der_ans:
         case "open":
             return OrderState.OPEN
@@ -62,17 +78,20 @@ def convert_deribit_order_status_to_structure(der_ans: str) -> OrderState:
 
 @dataclass()
 class OrderStructure:
-    order_tag: str
-    order_id: int | None
-    open_time: int
-    price: float | None
-    executed_price: float
-    total_commission: float
-    direction: str
-    order_amount: float
-    filled_amount: float
-    last_update_time: int
-    order_exist_time: int
-    instrument: str
-    order_type: OrderType
-    order_state: OrderState
+    """
+    Order structure to store order data
+    """
+    order_tag: str  # Order tag to identify order. Specified by user.
+    order_id: int | None    # Order id
+    open_time: int  # Order open time
+    price: float | None     # Order price
+    executed_price: float   # Order executed price
+    total_commission: float     # Total commission
+    direction: str  # Order direction
+    order_amount: float    # Order amount
+    filled_amount: float    # Filled amount
+    last_update_time: int   # Last update time
+    order_exist_time: int   # Order exist time
+    instrument: str    # Instrument name
+    order_type: OrderType   # Order type. See OrderType class
+    order_state: OrderState    # Order state. See OrderState class

@@ -21,6 +21,9 @@ else:
 
 
 class OrderBookSubscriptionCONSTANT(AbstractSubscription):
+    """
+    Class for subscription to order book with constant depth. Depth is set in constructor.
+    """
     tables_names = ["TABLE_DEPTH_{}"]
 
     def __init__(self, scrapper: scrapper_typing, order_book_depth: int):
@@ -98,6 +101,15 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
                                                interval="100ms",
                                                depth=None,
                                                group=None):
+        """
+        Make new deribit subscription to request order book data with constant depth.
+        :param instrument_name:
+        :param type_of_data:
+        :param interval:
+        :param depth:
+        :param group:
+        :return:
+        """
         if instrument_name not in self.scrapper.instrument_requested:
             subscription_message = MSG_LIST.make_subscription_constant_book_depth(instrument_name,
                                                                                   type_of_data=type_of_data,

@@ -20,6 +20,10 @@ else:
 
 
 class InstrumentManager(Thread):
+    """
+    Class for managing instruments. It's main purpose is to provide instruments for strategies and to manage their positions.
+    It also provides some useful methods for strategies.
+    """
     managed_instruments: Dict[str, AbstractInstrument]
     interface: interface_typing
 
@@ -114,6 +118,11 @@ class InstrumentManager(Thread):
             logging.info(f"Successfully initialized instrument: {self.managed_instruments[instrument]}")
 
     async def process_validation(self, callback: dict):
+        """
+        Process validation callback from interface. Checks equality between recorded and real positions.
+        :param callback:
+        :return:
+        """
         # Process positions
         if all(key in callback for key in self._position_keys):
             instrument_name = callback["instrument_name"]

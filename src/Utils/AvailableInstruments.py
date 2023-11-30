@@ -3,6 +3,9 @@ from enum import Enum
 
 
 class Instrument(Enum):
+    """
+    Enum for all available Instruments. If you need, you can add new currencies here.
+    """
     __slots__ = {"_instrument"}
     _instrument: str
 

@@ -3,6 +3,9 @@ from enum import Enum
 
 
 class Currency(Enum):
+    """
+    Enum for all available Currencies. If you need, you can add new currencies here.
+    """
     __slots__ = {"_coin_type", "_currency", "_currency_long"}
     _coin_type: str
     _currency: str
