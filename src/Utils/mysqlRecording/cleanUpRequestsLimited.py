@@ -4,12 +4,12 @@ def REQUEST_TO_CREATE_OWN_ORDERS_TABLE(table_name: str):
     REQUEST += \
         """
     (
-        CHANGE_ID       bigint not null auto_increment primary key,
+        CHANGE_ID       int not null auto_increment primary key,
         CREATION_TIMESTAMP       bigint   null,
         LAST_UPDATE_TIMESTAMP    bigint   null,
         INSTRUMENT_INDEX char(4) null,
         INSTRUMENT_STRIKE float  null,
-        INSTRUMENT_MATURITY bigint null,
+        INSTRUMENT_MATURITY int null,
         INSTRUMENT_TYPE int null,
         ORDER_TYPE blob null,
         ORDER_STATE blob null,
@@ -30,15 +30,15 @@ def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
     REQUEST += \
     """
 (
-    CHANGE_ID       bigint not null auto_increment primary key,
+    CHANGE_ID       int not null auto_increment primary key,
     TIMESTAMP_VALUE       bigint   null,
-    TRADE_ID        bigint   null,
+    TRADE_ID        int   null,
     PRICE           float null,
     INSTRUMENT_INDEX char(4) null,
     INSTRUMENT_STRIKE float  null,
-    INSTRUMENT_MATURITY bigint null,
+    INSTRUMENT_MATURITY int null,
     INSTRUMENT_TYPE int null,
-    DIRECTION       blob  null,
+    DIRECTION       tinyint  null,
     AMOUNT          float null
 );
 """
@@ -48,10 +48,10 @@ def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
 def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: int):
     HEADER = "create table {}".format(table_name)
     REQUIRED_FIELDS = """(
-    CHANGE_ID bigint not null auto_increment primary key,
+    CHANGE_ID int not null auto_increment primary key,
     INSTRUMENT_INDEX char(4) null,
     INSTRUMENT_STRIKE float  null,
-    INSTRUMENT_MATURITY bigint null,
+    INSTRUMENT_MATURITY int null,
     INSTRUMENT_TYPE int null,
     TIMESTAMP_VALUE bigint                           not null,
     """
@@ -88,7 +88,7 @@ def REQUEST_TO_CREATE_USER_PORTFOLIO_TABLE(table_name: str):
     REQUEST += \
         """
     (
-        CHANGE_ID       bigint not null auto_increment primary key,
+        CHANGE_ID       int not null auto_increment primary key,
         CREATION_TIMESTAMP       bigint   null,
         TOTAL_PL    float   null,
         MARGIN_BALANCE float  null,
