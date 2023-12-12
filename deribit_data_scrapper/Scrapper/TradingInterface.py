@@ -407,9 +407,12 @@ class DeribitClient(Thread, WebSocketApp):
 
     def add_instrument_manager(self):
         if self.configuration["externalModules"]["add_instrument_manager"]:
-            self.instrument_manager = InstrumentManager(
-                self, self.configuration, self.loop, ConfigRoot.DIRECTORY
-            )
+            if not self.instrument_manager:
+                self.instrument_manager = InstrumentManager(
+                    self, self.configuration, self.loop, ConfigRoot.DIRECTORY
+                )
+            else:
+                logging.warning("Instrument manager already connected")
         else:
             logging.warning("No instrument manager selected by configuration")
 
@@ -453,7 +456,7 @@ class DeribitClient(Thread, WebSocketApp):
         while True:
             try:
                 self.websocket.run_forever(
-                    ping_interval=None, reconnect=2, skip_utf8_validation=True
+                    ping_interval=None, reconnect=20, skip_utf8_validation=True
                 )
             except Exception as e:
                 print(e)
@@ -464,7 +467,7 @@ class DeribitClient(Thread, WebSocketApp):
     def _on_error(self, websocket, error):
         # TODO: send Telegram notification
         logging.error(error)
-        self.instrument_requested.clear()
+        # self.instrument_requested.clear()
         # import os, signal
         # os.kill(os.getpid(), signal.SIGUSR1)
 
