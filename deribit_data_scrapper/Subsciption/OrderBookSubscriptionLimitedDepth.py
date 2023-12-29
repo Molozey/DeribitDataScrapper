@@ -174,6 +174,16 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
             self.scrapper.instrument_requested.add(instrument_name)
         else:
             logging.warning(f"Instrument {instrument_name} already subscribed")
+            subscription_message = MSG_LIST.make_subscription_constant_book_depth(
+                instrument_name,
+                type_of_data=type_of_data,
+                interval=interval,
+                depth=depth,
+                group=group,
+            )
+
+            self.scrapper.send_new_request(request=subscription_message)
+            # self.scrapper.instrument_requested.add(instrument_name)
 
     def _create_subscription_request(self):
         # Send all subscriptions

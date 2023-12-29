@@ -15,6 +15,7 @@ import yaml
 from websocket import ABNF
 from websocket import enableTrace
 from websocket import WebSocketApp
+import rel
 
 from deribit_data_scrapper.DataBase import *
 from deribit_data_scrapper.InstrumentManager import AbstractInstrumentInfo
@@ -456,7 +457,9 @@ class DeribitClient(Thread, WebSocketApp):
         while True:
             try:
                 self.websocket.run_forever(
-                    ping_interval=None, reconnect=20, skip_utf8_validation=True
+                    # dispatcher=rel,
+                    ping_interval=self.configuration["orderBookScrapper"]["hearth_beat_time"], reconnect=20, skip_utf8_validation=True,
+
                 )
             except Exception as e:
                 print(e)

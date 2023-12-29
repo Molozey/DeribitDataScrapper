@@ -13,8 +13,8 @@ hdf5:
 
 record_system:
     use_batches_to_record: True
-    number_of_tmp_tables: 5
-    size_of_tmp_batch_table: 5
+    number_of_tmp_tables: 30
+    size_of_tmp_batch_table: 200
     instrumentNameToIdMapFile: "InstrumentNameToIdMap.json"
 
     clean_database_at_startup: False
@@ -35,13 +35,13 @@ externalModules:
 orderBookScrapper:
 #    scrapper_body: [OrderBook, Trades, OwnOrderChange, Portfolio]
     scrapper_body: [Trades, OrderBook]
-    depth: 5
+    depth: 10
     test_net: False
     currency: ETH
     enable_traceback: False # False - default
     enable_database_record: True
     clean_database: False
-    hearth_beat_time: 60
+    hearth_beat_time: 180
     group_in_limited_order_book: none
     raise_error_at_synthetic: False # False - default
     logger_level: INFO # WARN | INFO | ERROR
