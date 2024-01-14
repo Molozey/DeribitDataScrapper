@@ -105,7 +105,7 @@ def establish_mysql_connection():
             port=DB_CONFIG.PORT,
             database=DB_CONFIG.DATABASE_NAME,
         )
-        print("MySQL connection established successfully.")
+        # print("MySQL connection established successfully.")
         return connection
     except mysql.connector.Error as error:
         print("Error while connecting to MySQL:", error)
@@ -115,7 +115,7 @@ def establish_mysql_connection():
 def close_mysql_connection(connection):
     if connection:
         connection.close()
-        print("MySQL connection closed.")
+        # print("MySQL connection closed.")
 
 
 def read_data_from_mysql(query):
@@ -124,7 +124,7 @@ def read_data_from_mysql(query):
         try:
             # Read data from MySQL using pandas read_sql method
             data = pd.read_sql(query, connection)
-            print("Data read successfully from MySQL.")
+            # print("Data read successfully from MySQL.")
             return data
         except mysql.connector.Error as error:
             print("Error while reading data from MySQL:", error)
@@ -136,7 +136,7 @@ OFFSET = 0
 LIMIT = 100_000
 
 # TOTAL = 100_000_000
-TOTAL = 300_000
+TOTAL = 3_000_000
 total_df = pd.DataFrame()
 
 first_run = True
@@ -170,4 +170,6 @@ for _shift in tqdm(range(TOTAL // LIMIT)):
     else:
         with open(file_name, 'a') as file:
             merged.to_csv(file, header=False, index=False)
+
+    time.sleep(8)
 
