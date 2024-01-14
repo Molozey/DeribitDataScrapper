@@ -7,6 +7,18 @@ Python 3.10 or later. To install run:
 ```bash
 pip install scrapperDeribit
 ```
+Please note that tables library requires installed hdf5. For macOS:
+```bash
+brew install hdf5
+export HDF5_DIR=/opt/homebrew/opt/hdf5 
+```
+
+## Usage
+You can fast-try this scrapper by running examples/FullETHSurface/DownloadETHSurface.py.
+
+If you have mysql installed please provide secrets at examples/FullETHSurface/configuration.yaml
+
+Otherwise, select hdf5 orderBookScrapper.database_daemon=hdf5 at examples/FullETHSurface/configuration.yaml
 
 ## Configuration explained
 Each run of DeribitClient will take configuration file as input.
