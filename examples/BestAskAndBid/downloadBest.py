@@ -14,6 +14,7 @@ import mysql.connector
 import pandas as pd
 from dotenv import load_dotenv
 import datetime
+from time import sleep
 
 from tqdm import tqdm
 load_dotenv(".env")
@@ -132,44 +133,47 @@ def read_data_from_mysql(query):
             close_mysql_connection(connection)
 
 
-OFFSET = 0
-LIMIT = 100_000
+OFFSET = 400_000_000
+LIMIT = 1_000_000
 
-# TOTAL = 100_000_000
-TOTAL = 3_000_000
+
+TOTAL = 600_000_000
 total_df = pd.DataFrame()
 
 first_run = True
-file_name = 'save_dataframe.csv'
-
-for _shift in tqdm(range(TOTAL // LIMIT)):
-    df = read_data_from_mysql(f"SELECT * FROM TABLE_DEPTH_10 LIMIT {LIMIT} OFFSET {int(_shift * LIMIT)}")
-    time = df["TIMESTAMP_VALUE"]
-    instrument_description = df[
-        ["INSTRUMENT_INDEX", "INSTRUMENT_STRIKE", "INSTRUMENT_MATURITY", "INSTRUMENT_TYPE"]
-    ]
-    best_ask = df[["ASK_0_PRICE", "ASK_0_AMOUNT"]]
-    best_bid = df[["BID_9_PRICE", "BID_9_AMOUNT"]]
-
-
-    instrument_description.loc[:, "INSTRUMENT_TYPE"] = map_instrument_type(
-        instrument_description["INSTRUMENT_TYPE"]
-    )
-    instrument_description["INSTRUMENT_NAME"] = instrument_description.apply(
-        create_string, axis=1
-    )
+file_name = 'latest_data.csv'
+if __name__ == '__main__':
+    for _shift in tqdm(range(OFFSET // LIMIT, TOTAL // LIMIT)):
+        left_border = int(_shift * LIMIT)
+        right_border = int((_shift + 1) * LIMIT)
+        df = read_data_from_mysql(f"SELECT * FROM TABLE_DEPTH_10 WHERE CHANGE_ID between {left_border} and {right_border}")
+        time = df["TIMESTAMP_VALUE"]
+        instrument_description = df[
+            ["INSTRUMENT_INDEX", "INSTRUMENT_STRIKE", "INSTRUMENT_MATURITY", "INSTRUMENT_TYPE"]
+        ]
+        best_ask = df[["ASK_0_PRICE", "ASK_0_AMOUNT"]]
+        best_bid = df[["BID_9_PRICE", "BID_9_AMOUNT"]]
 
 
-    best_ask.columns = ["ASK_PRICE", "ASK_AMOUNT"]
-    best_bid.columns = ["BID_PRICE", "BID_AMOUNT"]
-    time_converted = pd.to_datetime(time * 1_000_000)
-    merged = pd.concat([time_converted, instrument_description, best_ask, best_bid], axis=1)
-    if first_run:
-        merged.to_csv(file_name, header=True, index=False)
-        first_run = False
-    else:
-        with open(file_name, 'a') as file:
-            merged.to_csv(file, header=False, index=False)
+        instrument_description.loc[:, "INSTRUMENT_TYPE"] = map_instrument_type(
+            instrument_description["INSTRUMENT_TYPE"]
+        )
+        instrument_description["INSTRUMENT_NAME"] = instrument_description.apply(
+            create_string, axis=1
+        )
 
-    time.sleep(8)
+
+        best_ask.columns = ["ASK_PRICE", "ASK_AMOUNT"]
+        best_bid.columns = ["BID_PRICE", "BID_AMOUNT"]
+        # time_converted = pd.to_datetime(time * 1_000_000)
+        time_converted = pd.Series([pd.Timestamp.fromtimestamp(_time // 1000) for _time in time])
+        merged = pd.concat([time_converted, instrument_description, best_ask, best_bid], axis=1)
+        if first_run:
+            merged.to_csv(file_name, header=True, index=False)
+            first_run = False
+        else:
+            with open(file_name, 'a') as file:
+                merged.to_csv(file, header=False, index=False)
+
+        sleep(0.5)
 
