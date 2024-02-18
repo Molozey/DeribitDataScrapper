@@ -458,7 +458,7 @@ class DeribitClient(Thread, WebSocketApp):
             try:
                 self.websocket.run_forever(
                     # dispatcher=rel,
-                    ping_interval=self.configuration["orderBookScrapper"]["hearth_beat_time"], reconnect=20, skip_utf8_validation=True,
+                    ping_interval=self.configuration["orderBookScrapper"]["hearth_beat_time"], reconnect=120, skip_utf8_validation=True,
 
                 )
             except Exception as e:

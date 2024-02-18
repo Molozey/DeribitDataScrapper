@@ -18,7 +18,7 @@ from examples.BestAskAndBid.downloadBest import read_data_from_mysql
 load_dotenv(".env")
 DB_CONFIG = DataBaseConfig()
 
-UPDATE_TIME_IN_SEC = 1
+UPDATE_TIME_IN_SEC = 10
 ORDERBOOK_FILE = "orderBookShape.txt"
 TRADES_FILE = "tradesShape.txt"
 
