@@ -51,12 +51,12 @@ if __name__ == "__main__":
         if prev_trade and prev_book:
             with open("RPC_" + ORDERBOOK_FILE, "a") as rpc_orderbook_file:
                 rpc_orderbook_file.write(
-                    f"{Timestamp.utcnow().replace(tzinfo=None)},{(orderbook_shape - prev_book) / UPDATE_TIME_IN_SEC}\n"
+                    f"{Timestamp.utcnow().replace(tzinfo=None)},{(orderbook_shape - prev_book) / UPDATE_TIME_IN_SEC},{UPDATE_TIME_IN_SEC}\n"
                 )
 
             with open("RPC_" + TRADES_FILE, "a") as rpc_trades_file:
                 rpc_trades_file.write(
-                    f"{Timestamp.utcnow().replace(tzinfo=None)},{(trades_shape - prev_trade) / UPDATE_TIME_IN_SEC}\n"
+                    f"{Timestamp.utcnow().replace(tzinfo=None)},{(trades_shape - prev_trade) / UPDATE_TIME_IN_SEC},{UPDATE_TIME_IN_SEC}\n"
                 )
 
         time.sleep(UPDATE_TIME_IN_SEC)
