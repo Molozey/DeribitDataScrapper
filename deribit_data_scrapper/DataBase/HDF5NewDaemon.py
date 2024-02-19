@@ -23,7 +23,7 @@ class HDF5Daemon(AbstractDataManager):
         self,
         configuration_path,
         subscription_type: Optional[AbstractSubscription],
-        loop: asyncio.unix_events.SelectorEventLoop,
+        loop: asyncio.SelectorEventLoop,
     ):
         logging.basicConfig(
             level="INFO",

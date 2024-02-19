@@ -170,7 +170,7 @@ class AbstractDataManager(ABC):
     batch_number_of_tables: Optional[int] = None
     batch_size_of_table: Optional[int] = None
     batch_currently_selected_table: Optional[int] = None
-    async_loop: asyncio.unix_events.SelectorEventLoop
+    async_loop: asyncio.SelectorEventLoop
 
     subscription_type: Optional[AbstractSubscription] = None
 
@@ -178,7 +178,7 @@ class AbstractDataManager(ABC):
         self,
         config_path,
         subscription_type: Optional[AbstractSubscription],
-        loop: asyncio.unix_events.SelectorEventLoop,
+        loop: asyncio.SelectorEventLoop,
     ):
         self.cfg = config_path
 

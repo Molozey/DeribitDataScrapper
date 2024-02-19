@@ -322,7 +322,7 @@ class DeribitClient(Thread, WebSocketApp):
 
     websocket: Optional[WebSocketApp]
     database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
-    loop: asyncio.unix_events.SelectorEventLoop
+    loop: asyncio.SelectorEventLoop
     instrument_name_instrument_id_map: AutoIncrementDict[
         str, AbstractInstrumentInfo
     ] = None

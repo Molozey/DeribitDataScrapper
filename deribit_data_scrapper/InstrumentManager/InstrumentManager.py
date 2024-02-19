@@ -46,7 +46,7 @@ class InstrumentManager(Thread):
         self,
         interface: interface_typing,
         interface_cfg: dict,
-        work_loop: asyncio.unix_events.SelectorEventLoop,
+        work_loop: asyncio.SelectorEventLoop,
         use_config: ConfigRoot = ConfigRoot.DIRECTORY,
         strategy_configuration: dict = None,
     ):
