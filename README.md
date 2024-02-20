@@ -20,6 +20,10 @@ If you have mysql installed please provide secrets at examples/FullETHSurface/co
 
 Otherwise, select hdf5 orderBookScrapper.database_daemon=hdf5 at examples/FullETHSurface/configuration.yaml
 
+To run examples on unix system you should use (from root folder)
+```bash
+python -m examples.FullBTCSurface.DownloadBTCSurface
+```
 ## Configuration explained
 Each run of DeribitClient will take configuration file as input.
 
