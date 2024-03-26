@@ -6,18 +6,27 @@ from downloadBest import read_data_from_mysql, map_instrument_type, create_strin
 BASE_TOLERANCE = 100
 
 
-def get_nearest_change_id(left_border: int, right_border: int, left: bool = False):
+def get_table(table: str) -> str:
+    if table == 'trades':
+        return 'Trades_table_test'
+    elif table == 'book':
+        return 'TABLE_DEPTH_10'
+    else:
+        raise NameError(f"No table with name {table}")
+
+
+def get_nearest_change_id(left_border: int, right_border: int, left: bool = False, table: str = 'trades'):
     if left:
         query = f"""
         SELECT MIN(CHANGE_ID)
-        FROM TABLE_DEPTH_10
+        FROM {get_table(table)}
         WHERE CHANGE_ID between {left_border} and {right_border}
         """
         res = read_data_from_mysql(query=query)["MIN(CHANGE_ID)"]
     else:
         query = f"""
         SELECT MAX(CHANGE_ID)
-        FROM TABLE_DEPTH_10
+        FROM {get_table(table)}
         WHERE CHANGE_ID between {left_border} and {right_border}
         """
         res = read_data_from_mysql(query=query)["MAX(CHANGE_ID)"]
@@ -26,36 +35,34 @@ def get_nearest_change_id(left_border: int, right_border: int, left: bool = Fals
     return res.iloc[0]
 
 
-def get_time_by_change_id(changeid: int, collect_left_item: bool = False) -> pd.Timestamp:
-    line = read_data_from_mysql(query=f'SELECT * FROM TABLE_DEPTH_10 WHERE CHANGE_ID={changeid}')
+def get_time_by_change_id(changeid: int, collect_left_item: bool = False, table: str = 'trades') -> pd.Timestamp:
+    line = read_data_from_mysql(query=f'SELECT * FROM {get_table(table)} WHERE CHANGE_ID={changeid}')
     idx = None
     TOLERANCE = BASE_TOLERANCE
 
     while line.empty or not idx:
-        idx = get_nearest_change_id(changeid - TOLERANCE, changeid + TOLERANCE, left=collect_left_item)
+        idx = get_nearest_change_id(changeid - TOLERANCE, changeid + TOLERANCE, left=collect_left_item, table=table)
         if idx:
             line = read_data_from_mysql(
-                query='SELECT * FROM TABLE_DEPTH_10 WHERE CHANGE_ID={}'.format(
-                    get_nearest_change_id(changeid - TOLERANCE, changeid + TOLERANCE, left=collect_left_item)
+                query='SELECT * FROM {} WHERE CHANGE_ID={}'.format(get_table(table),
+                    get_nearest_change_id(changeid - TOLERANCE, changeid + TOLERANCE, left=collect_left_item, table=table)
                 )
             )
         TOLERANCE = TOLERANCE * 2
-        print(f"NEW TOLERANCE is {TOLERANCE}")
 
     line = line.iloc[0]
     time = pd.Timestamp.fromtimestamp(line["TIMESTAMP_VALUE"] // 1000)
     return time
 
 
-def bin_search(border: pd.Timestamp) -> int:
-    high = read_data_from_mysql(query=f'SELECT MAX(CHANGE_ID) FROM TABLE_DEPTH_10')["MAX(CHANGE_ID)"].iloc[0]
-    low = read_data_from_mysql(query=f'SELECT MIN(CHANGE_ID) FROM TABLE_DEPTH_10')["MIN(CHANGE_ID)"].iloc[0]
+def bin_search(border: pd.Timestamp, table: str = 'trades') -> int:
+    high = read_data_from_mysql(query=f'SELECT MAX(CHANGE_ID) FROM {get_table(table)}')["MAX(CHANGE_ID)"].iloc[0]
+    low = read_data_from_mysql(query=f'SELECT MIN(CHANGE_ID) FROM {get_table(table)}')["MIN(CHANGE_ID)"].iloc[0]
     print(f"{low=} {high=}")
 
     max_iter = int(np.log2(high - low)) + 2
-    assert get_time_by_change_id(low) < border
-    assert get_time_by_change_id(high) > border
-
+    assert get_time_by_change_id(low, table=table) <= border
+    assert get_time_by_change_id(high, table=table) >= border
 
     count = 0
     while low < high - 1 or count > max_iter:
@@ -63,9 +70,11 @@ def bin_search(border: pd.Timestamp) -> int:
         # TOLERANCE = 10_000
         # mid = get_nearest_change_id(left_border=mid-TOLERANCE, right_border=mid+TOLERANCE, left=True)
         # print(mid)
-        mid_val = get_time_by_change_id(mid, collect_left_item=True)
+        mid_val = get_time_by_change_id(mid, collect_left_item=True, table=table)
         # print(mid_val)
         count += 1
+        if count - 10 * count // 10 == 0:
+            print(f'iterations: {count}/{max_iter}')
 
         if mid_val < border:
             low = mid
@@ -75,34 +84,34 @@ def bin_search(border: pd.Timestamp) -> int:
             return mid
 
     if count <= max_iter:
-        low_delta = abs(border - get_time_by_change_id(low, collect_left_item=False))
-        high_delta = abs(border - get_time_by_change_id(high, collect_left_item=True))
+        low_delta = abs(border - get_time_by_change_id(low, collect_left_item=False, table=table))
+        high_delta = abs(border - get_time_by_change_id(high, collect_left_item=True, table=table))
         if high_delta < low_delta:
             return high
         else:
             return low
 
 
-def get_change_id_borders(left_timestamp: pd.Timestamp, right_timestamp: pd.Timestamp) -> tuple:
+def get_change_id_borders(left_timestamp: pd.Timestamp, right_timestamp: pd.Timestamp, table: str = 'trades') -> tuple:
     assert left_timestamp < right_timestamp
-    left_id = bin_search(left_timestamp)
-    right_id = bin_search(right_timestamp)
+    print('Searching for left border CHANGE_ID')
+    left_id = bin_search(left_timestamp, table=table)
+
+    print('Searching for right border CHANGE_ID')
+    right_id = bin_search(right_timestamp, table=table)
     assert left_id < right_id
     return left_id, right_id
 
 
-# TODO: What to do with best bid and ask??
 # TODO: make batching
-
-def get_trades_by_time(start_time: pd.Timestamp, end_time: pd.Timestamp, agg_ohlc: int=None) -> Union[pd.DataFrame, dict]:
-    left_border, right_border = get_change_id_borders(start_time, end_time)
+def get_trades_by_time(start_time: pd.Timestamp, end_time: pd.Timestamp, table: str = 'trades', agg_ohlc: int = None) -> Union[pd.DataFrame, dict]:
+    left_border, right_border = get_change_id_borders(start_time, end_time, table)
     print('Found CHANGE ID for time interval, getting data')
 
-    # TODO: change trades_table_test to table
-    REQUEST = """SELECT * FROM Trades_table_test WHERE CHANGE_ID between {} and {};"""
+    REQUEST = """SELECT * FROM {} WHERE CHANGE_ID between {} and {};"""
 
     df = read_data_from_mysql(
-        REQUEST.format(left_border, right_border))
+        REQUEST.format(get_table(table), left_border, right_border))
 
     time = df["TIMESTAMP_VALUE"]
     instrument_description = df[
@@ -130,24 +139,18 @@ def get_trades_by_time(start_time: pd.Timestamp, end_time: pd.Timestamp, agg_ohl
     #         merged.to_csv(file, header=False, index=False)
 
     # TODO: add aggregation and resampling
-    # TODO: add volume bars option
-    if agg_ohlc:
+    if agg_ohlc and table == 'TABLE_DEPTH_10':
 
         return
     else:
+        print('Cannot resample orderbook')
         return merged
 
 
 if __name__ == '__main__':
-    data = get_trades_by_time(pd.Timestamp('2023-12-01 00:00:00'), pd.Timestamp('2023-12-01 00:05:00'))
+    data = get_trades_by_time(pd.Timestamp('2023-12-01 00:00:00'), pd.Timestamp('2023-12-01 00:05:00'), table='trades')
     print(data.shape)
     print(data.columns)
     print(data.head(100))
-    # bin_search(100_0000)
-
-    # change_id = bin_search(border=pd.Timestamp('2024-01-12 04:30:00'))
-    # print('_'*20)
-    # print(change_id)
-    # print(get_time_by_change_id(change_id))
 
 
