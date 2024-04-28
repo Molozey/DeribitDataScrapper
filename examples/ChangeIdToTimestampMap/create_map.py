@@ -21,25 +21,6 @@ take_each_n_row = 10_000
 offset = 1_000_000
 
 
-def download_batch(batch_num: int):
-    left_pointer = batch_num * offset
-    right_pointer = (batch_num + 1) * offset
-    df = pd.read_sql(
-        f"""
-    SELECT * FROM DeribitOrderBook.TABLE_DEPTH_10
-    WHERE CHANGE_ID between {left_pointer} and {right_pointer}
-    AND CHANGE_ID mod {take_each_n_row} = 0;
-    """,
-        con=ENGINE(),
-    )
-    return df
-
-
-# take_each_n_row = 10_000
-# offset = 1_000_000
-# left_pointer = 0
-# right_pointer = left_pointer + offset
-
 total_size = pd.read_sql(
     f"""SELECT MAX(CHANGE_ID) FROM DeribitOrderBook.TABLE_DEPTH_10""", ENGINE()
 )
@@ -48,7 +29,23 @@ start_row = 0
 number_of_batches = total_size.iloc[0, 0] // offset
 start_batch = start_row // offset
 
-total_collected_shape = 0
+
+def download_batch(batch_num: int):
+    engine = ENGINE()
+    left_pointer = batch_num * offset
+    right_pointer = (batch_num + 1) * offset
+    df = pd.read_sql(
+        f"""
+    SELECT * FROM DeribitOrderBook.TABLE_DEPTH_10
+    WHERE CHANGE_ID between {left_pointer} and {right_pointer}
+    AND CHANGE_ID mod {take_each_n_row} = 0;
+    """,
+        con=engine,
+    )
+    engine.dispose()
+    return df
+
+
 if __name__ == "__main__":
     results = Parallel(n_jobs=-1, verbose=0)(
         delayed(download_batch)(batch)
