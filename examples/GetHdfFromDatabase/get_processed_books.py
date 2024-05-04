@@ -1,11 +1,15 @@
-import os
 import pandas as pd
 from dotenv import load_dotenv
 from tqdm import tqdm
 import numpy as np
 import warnings
 
-from BestAskAndBid.downloadBest import read_data_from_mysql, map_instrument_type, create_string
+from utils import check_data_dir
+
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
+from BestAskAndBid.downloadBest import read_data_from_mysql
 
 
 def _get_prices_amounts(books_data: np.ndarray):
@@ -75,23 +79,25 @@ def process_books(books: pd.DataFrame):
 if __name__ == '__main__':
     load_dotenv(".env")
 
-    DATA_DIR = 'DATA/books_processed'
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR)
-    else:
-        raise RuntimeError(f'Data path already exists, won\'t overwrite: {DATA_DIR}')
-
-    DATA_FILE = DATA_DIR + '/books{:0004d}.hdf'
-
     START_IDX  = 1
     END_IDX    = 2_148_000_000
     BATCH_SIZE = 1_000_000
 
-    n = 1
-    for _shift in tqdm(range(START_IDX // BATCH_SIZE, END_IDX // BATCH_SIZE), ncols=70):
+    DATA_DIR = 'DATA/books_processed'
+    DATA_FILE = DATA_DIR + '/books{:0004d}.hdf'
+    GLOB_STR = 'books[0-9]*.hdf'
+
+    if (batch_num := check_data_dir(DATA_DIR, GLOB_STR)) is not None:
+        start_idx = START_IDX + (batch_num - 1) * BATCH_SIZE
+        print(f'Existing data directory found, continuing from batch {batch_num} (index={start_idx})')
+    else:
+        batch_num = 1
+        start_idx = START_IDX
+
+    for _shift in tqdm(range(start_idx // BATCH_SIZE, END_IDX // BATCH_SIZE), ncols=70):
         left_border = int(_shift * BATCH_SIZE)
-        right_border = int((_shift + 1) * BATCH_SIZE)
+        right_border = int((_shift + 1) * BATCH_SIZE) - 1
         books = read_data_from_mysql(f"SELECT * FROM TABLE_DEPTH_10 WHERE CHANGE_ID between {left_border} and {right_border}")
         books_processed = process_books(books)
-        books_processed.to_hdf(DATA_FILE.format(n), key='books_processed', complevel=3)
-        n += 1
+        books_processed.to_hdf(DATA_FILE.format(batch_num), key='books_processed', complevel=3)
+        batch_num += 1
