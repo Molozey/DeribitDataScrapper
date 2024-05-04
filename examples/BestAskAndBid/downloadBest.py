@@ -148,7 +148,7 @@ file_name = 'latest_data.csv'
 if __name__ == '__main__':
     for _shift in tqdm(range(OFFSET // LIMIT, TOTAL // LIMIT)):
         left_border = int(_shift * LIMIT)
-        right_border = int((_shift + 1) * LIMIT)
+        right_border = int((_shift + 1) * LIMIT) - 1
         df = read_data_from_mysql(f"SELECT * FROM TABLE_DEPTH_10 WHERE CHANGE_ID between {left_border} and {right_border}")
         time = df["TIMESTAMP_VALUE"]
         instrument_description = df[
