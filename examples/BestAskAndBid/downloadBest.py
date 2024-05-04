@@ -15,6 +15,7 @@ import pandas as pd
 from dotenv import load_dotenv
 import datetime
 from time import sleep
+import warnings
 
 from tqdm import tqdm
 load_dotenv(".env")
@@ -124,7 +125,9 @@ def read_data_from_mysql(query):
     if connection:
         try:
             # Read data from MySQL using pandas read_sql method
-            data = pd.read_sql(query, connection)
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                data = pd.read_sql(query, connection)
             # print("Data read successfully from MySQL.")
             return data
         except mysql.connector.Error as error:
