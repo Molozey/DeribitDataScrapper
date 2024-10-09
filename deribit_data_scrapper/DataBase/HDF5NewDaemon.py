@@ -3,6 +3,7 @@ import logging
 import os
 from typing import Optional
 
+import numpy as np
 from pandas import DataFrame
 from pandas import HDFStore
 
@@ -75,6 +76,8 @@ class HDF5Daemon(AbstractDataManager):
         pass
 
     async def __hdf5_appending_one_table(self, record_dataframe: DataFrame):
+            # record_dataframe['CHANGE_ID'] = np.float64(0.0)
+        record_dataframe = record_dataframe.astype(np.float64)
         record_dataframe.to_hdf(
             self.connection,
             key=self.subscription_type.tables_names[0],
