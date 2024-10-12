@@ -6,6 +6,7 @@ import asyncio
 import threading
 import yaml
 import os
+import click
 
 
 async def scrap_all_instruments_from_currency(currency: Currency, cfg):
@@ -77,23 +78,24 @@ async def scrap_all_instruments_from_currency(currency: Currency, cfg):
     return full_list
 
 
-async def start_scrapper(configuration_path=None):
+async def start_scrapper(config_path="configuration.yaml"):
     try:
         print('getcwd:      ', os.getcwd())
         print('__file__:    ', __file__)
         print(f"script dir {os.path.dirname(__file__)}")
         os.chdir(os.path.dirname(__file__))
-        configuration = validate_configuration_file("configuration.yaml")
+        configuration = validate_configuration_file(config_path)
         with open('developerConfiguration.yaml', "r") as ymlfile:
             devCFG = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
+        logging_handlers = [logging.StreamHandler()]
+        if configuration['orderBookScrapper']['log_path'] is not None:
+            logging_handlers.append(logging.FileHandler(configuration['orderBookScrapper']["log_path"]))
         logging.basicConfig(
             level=configuration['orderBookScrapper']["logger_level"],
             format=f"%(asctime)s | [%(levelname)s] | [%(threadName)s] | %(name)s | FUNC: (%(filename)s).%(funcName)s(%(lineno)d) | %(message)s",
             datefmt='%Y-%m-%d %H:%M:%S',
-            handlers=[
-                logging.FileHandler(f"Loging.log"),
-                logging.StreamHandler()])
+            handlers=logging_handlers)
         match configuration['orderBookScrapper']["currency"]:
             case "BTC":
                 _currency = Currency.BITCOIN
@@ -123,8 +125,16 @@ async def start_scrapper(configuration_path=None):
         print("error", E)
         logging.exception(E)
 
-if __name__ == '__main__':
+
+@click.command(context_settings=dict(max_content_width=90))
+@click.option("--config-path", type=str, default="configuration.yaml",
+              show_default=True, help="Path to the configuration file")
+def main(config_path):
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
-    loop.create_task(start_scrapper())
+    loop.create_task(start_scrapper(config_path))
     loop.run_forever()
+
+
+if __name__ == '__main__':
+    main()

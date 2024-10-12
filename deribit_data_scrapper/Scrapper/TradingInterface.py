@@ -15,7 +15,6 @@ import yaml
 from websocket import ABNF
 from websocket import enableTrace
 from websocket import WebSocketApp
-import rel
 
 from deribit_data_scrapper.DataBase import *
 from deribit_data_scrapper.InstrumentManager import AbstractInstrumentInfo

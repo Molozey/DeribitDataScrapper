@@ -9,7 +9,7 @@ mysql:
     reconnect_wait_time: 1
 
 hdf5:
-    hdf5_database_directory: "HDF_storage_24Jul"
+    hdf5_database_directory: "HDF_storage"
 
 record_system:
     use_batches_to_record: True
@@ -45,6 +45,7 @@ orderBookScrapper:
     group_in_limited_order_book: none
     raise_error_at_synthetic: False # False - default
     logger_level: INFO # WARN | INFO | ERROR
+    log_path: null
 
     select_all_order_book: True
     only_api_orders_processing: True
