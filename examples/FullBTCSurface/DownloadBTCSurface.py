@@ -88,13 +88,14 @@ async def start_scrapper(config_path="configuration.yaml"):
         with open('developerConfiguration.yaml', "r") as ymlfile:
             devCFG = yaml.load(ymlfile, Loader=yaml.FullLoader)
 
+        logging_handlers = [logging.StreamHandler()]
+        if configuration['orderBookScrapper']['log_path'] is not None:
+            logging_handlers.append(logging.FileHandler(configuration['orderBookScrapper']["log_path"]))
         logging.basicConfig(
             level=configuration['orderBookScrapper']["logger_level"],
             format=f"%(asctime)s | [%(levelname)s] | [%(threadName)s] | %(name)s | FUNC: (%(filename)s).%(funcName)s(%(lineno)d) | %(message)s",
             datefmt='%Y-%m-%d %H:%M:%S',
-            handlers=[
-                logging.FileHandler(f"Loging.log"),
-                logging.StreamHandler()])
+            handlers=logging_handlers)
         match configuration['orderBookScrapper']["currency"]:
             case "BTC":
                 _currency = Currency.BITCOIN
