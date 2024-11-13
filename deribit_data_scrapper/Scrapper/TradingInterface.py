@@ -458,7 +458,7 @@ class DeribitClient(Thread, WebSocketApp):
             try:
                 self.websocket.run_forever(
                     # dispatcher=rel,
-                    ping_interval=self.configuration["orderBookScrapper"]["hearth_beat_time"], reconnect=120, skip_utf8_validation=True,
+                    ping_interval=self.configuration["orderBookScrapper"]["hearth_beat_time"], reconnect=60, skip_utf8_validation=True,
 
                 )
             except Exception as e:
@@ -554,19 +554,26 @@ class DeribitClient(Thread, WebSocketApp):
         :param websocket:
         :return:
         """
-        # Add Instrument Manager
-        self.add_instrument_manager()
-        # Set heartbeat
-        self.send_new_request(
-            MSG_LIST.set_heartbeat(
-                self.configuration["orderBookScrapper"]["hearth_beat_time"]
-            )
-        )
+        try:
+            # Add Instrument Manager
+            self.add_instrument_manager()
 
-        logging.info("Client start his work")
-        # Execute initial subscription's request pipelines
-        for action, sub in self.subscriptions_objects.items():
-            sub.create_subscription_request()
+            logging.error("Client start his work")
+            # Execute initial subscription's request pipelines
+            for action, sub in self.subscriptions_objects.items():
+                sub.create_subscription_request()
+            logging.error("[All subs complete]: Client start his work")
+            # Set heartbeat
+            self.send_new_request(
+                MSG_LIST.set_heartbeat(
+                    self.configuration["orderBookScrapper"]["hearth_beat_time"]
+                )
+            )
+            logging.error("[hearthbeat compete]: Client start his work")
+        except Exception as e:
+            print(e)
+            logging.error("Exception in on open", exc_info=True)
+            raise
 
     def send_new_request(self, request: dict):
         """
@@ -630,6 +637,7 @@ class DeribitClient(Thread, WebSocketApp):
         response = session.get(
             f"https://{_hist}deribit.com/api/v2/{_private}/{method}", params=params
         )
+        time.sleep(0.05)
         return response.json()
 
     def add_strategy(self, strategy: AbstractStrategy):

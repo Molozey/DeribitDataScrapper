@@ -47,7 +47,7 @@ def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
 def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: int):
     HEADER = "create table {}".format(table_name)
     REQUIRED_FIELDS = """(
-    CHANGE_ID int not null auto_increment primary key,
+    CHANGE_ID int unsigned not null auto_increment primary key,
     INSTRUMENT_INDEX tinyint null,
     INSTRUMENT_STRIKE float  null,
     INSTRUMENT_MATURITY int null,
@@ -101,3 +101,7 @@ def REQUEST_TO_CREATE_USER_PORTFOLIO_TABLE(table_name: str):
     );
     """
     return REQUEST
+
+if __name__ == '__main__':
+    sql = REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name='sd', depth_size=10)
+    print(sql)

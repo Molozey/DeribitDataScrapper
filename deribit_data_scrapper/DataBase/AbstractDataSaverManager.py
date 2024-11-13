@@ -120,7 +120,8 @@ class AutoIncrementDict(Dict[str, AbstractInstrumentInfo]):
         #
         # self.pointer = max(instrument_name_instrument_id_map.values())
         #
-        logging.info(f"Caching unavailable while using new mapping tool")
+        # logging.info(f"Caching unavailable while using new mapping tool")
+        pass
 
     def add_instrument(self, key, value=None):
         """
@@ -138,7 +139,8 @@ class AutoIncrementDict(Dict[str, AbstractInstrumentInfo]):
         """
         # with open(f'{self.path_to_file}', 'w') as fp:
         #     json.dump(self, fp)
-        logging.warning("Caching unavailable while using new mapping tool")
+        # logging.warning("Caching unavailable while using new mapping tool")
+        pass
 
     def __getitem__(self, item):
         """

@@ -1,0 +1,3 @@
+2024-04-25 05:18:27 | [ERROR] | [Thread-4 (run_forever)] | root | FUNC: (MySQLNewDaemon.py)._mysql_post_execution_handler(97) | MySQL execution error:
+ 1467 (HY000): Failed to read auto-increment value from storage engine
+
