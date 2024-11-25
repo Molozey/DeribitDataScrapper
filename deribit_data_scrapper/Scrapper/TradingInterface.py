@@ -496,6 +496,7 @@ class DeribitClient(Thread, WebSocketApp):
             # Answer to heartbeat request
             if response["method"] == "heartbeat":
                 # Send test message to approve that connection is still alive
+                logging.info("Heartbeat received, sending the heartbeat")
                 self.send_new_request(MSG_LIST.test_message())
                 return
             # TODO
@@ -541,7 +542,7 @@ class DeribitClient(Thread, WebSocketApp):
                 logging.error(f"Unknown error callback: | {response}")
 
     def _process_callback(self, response):
-        logging.info(response)
+        # logging.info(response)
         pass
 
     def _on_open(self, websocket):
