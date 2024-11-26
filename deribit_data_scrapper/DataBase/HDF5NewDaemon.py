@@ -1,14 +1,20 @@
 import asyncio
 import logging
 import os
+import time
 from typing import Optional
 
+import pandas as pd
 import numpy as np
 from pandas import DataFrame
-from pandas import HDFStore
+from pandas import HDFStore 
 
 from deribit_data_scrapper.DataBase.AbstractDataSaverManager import AbstractDataManager
 from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription
+
+
+pd.set_option('display.max_columns', 500)
+pd.set_option('display.width', 5000)
 
 
 class HDF5Daemon(AbstractDataManager):
@@ -36,6 +42,8 @@ class HDF5Daemon(AbstractDataManager):
             subscription_type=subscription_type,
             loop=loop,
         )
+        self.LOG_WRITE_FREQ_SECONDS = 30
+        self.last_write_ts = 0
 
     async def _connect_to_database(self):
         print("Connect HDF5")
@@ -58,6 +66,7 @@ class HDF5Daemon(AbstractDataManager):
             self.connection.close()
             self.db_cursor = None
             logging.info("Success connection to HDF5 database")
+            logging.info(f"Every {self.LOG_WRITE_FREQ_SECONDS} seconds will log when data is appended into {self.path_to_hdf5_file}")
             return
         except Exception as e:
             logging.error(
@@ -91,6 +100,11 @@ class HDF5Daemon(AbstractDataManager):
             index=False,
             data_columns=True,
         )
+        ts_now = time.time()
+        if ts_now - self.last_write_ts > self.LOG_WRITE_FREQ_SECONDS:
+            record_dataframe['TIMESTAMP_VALUE'] = pd.to_datetime(record_dataframe['TIMESTAMP_VALUE'], unit='ms')
+            logging.info(f"Wrote to HDF5 file {self.path_to_hdf5_file}\n{record_dataframe}")
+            self.last_write_ts = ts_now
         # self.connection.append(self.subscription_type.tables_names[0], record_dataframe,
         #                        data_columns=self.subscription_type.create_columns_list(), format='t')
         return 1
