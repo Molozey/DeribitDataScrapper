@@ -122,5 +122,4 @@ class ClickHouseDaemon(AbstractDataManager):
 
 
     async def _place_data_to_database(self, record_dataframe: DataFrame):
-        print("data", record_dataframe)
         await self.__database_one_table_record(record_dataframe=record_dataframe)
