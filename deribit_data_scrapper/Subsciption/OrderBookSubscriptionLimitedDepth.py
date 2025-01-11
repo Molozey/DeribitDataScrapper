@@ -122,6 +122,7 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         ) = self.instrument_name_instrument_id_map[
             input_response["params"]["data"]["instrument_name"]
         ].get_fields()
+
         _bids = sorted(
             input_response["params"]["data"]["bids"], key=lambda x: x[0], reverse=True
         )
@@ -143,9 +144,9 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         _bids_insert_array.extend(_asks_insert_array)
         _update_line = [
             _ins_idx,
-            _instrument_strike,
-            _instrument_maturity,
-            _instrument_type,
+            int(_instrument_strike),
+            int(_instrument_maturity),
+            int(_instrument_type),
             _timestamp,
         ]
         _update_line.extend(_bids_insert_array)

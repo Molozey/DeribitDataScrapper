@@ -107,11 +107,16 @@ class ClickHouseDaemon(AbstractDataManager):
             logging.info("All need tables already exists. That's good!")
 
     async def __database_one_table_record(self, record_dataframe: DataFrame):
+        # from copy import deepcopy
+        insert = record_dataframe.copy()
         try:
-            if 'CHANGE_ID' in record_dataframe.columns:
-                insert = record_dataframe.drop(["CHANGE_ID"], axis=1)
+            if 'CHANGE_ID' in insert.columns:
+                insert = insert.drop(["CHANGE_ID"], axis=1)
+            # if 'INSTRUMENT_INDEX' in insert:
+            #     insert['INSTRUMENT_INDEX'] = insert['INSTRUMENT_INDEX'].astype(int)
             await self.connection.insert_df(self.subscription_type.tables_names[0], insert)
         except Exception as e:
+            insert.to_csv("ERROR.csv", index=False)
             logging.error("Error while inserting data to clickhouse", exc_info=True)
             os.kill(os.getpid(), signal.SIGUSR1)
 

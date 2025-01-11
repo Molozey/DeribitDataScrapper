@@ -1,28 +1,3 @@
-def REQUEST_TO_CREATE_OWN_ORDERS_TABLE(table_name: str):
-    HEADER = "create table {}".format(table_name)
-    REQUEST = HEADER
-    REQUEST += """
-    (
-        CHANGE_ID       int not null auto_increment primary key,
-        CREATION_TIMESTAMP       bigint   null,
-        LAST_UPDATE_TIMESTAMP    bigint   null,
-        INSTRUMENT_INDEX tinyint null,
-        INSTRUMENT_STRIKE float  null,
-        INSTRUMENT_MATURITY int null,
-        INSTRUMENT_TYPE int null,
-        ORDER_TYPE blob null,
-        ORDER_STATE blob null,
-        ORDER_ID    bigint null,
-        FILLED_AMOUNT   float null,
-        COMMISSION  float null,
-        AVERAGE_PRICE float null,
-        PRICE   float null,
-        DIRECTION       blob  null,
-        AMOUNT          float null
-    );
-    """
-    return REQUEST
-
 
 def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
     HEADER = "create table {}".format(table_name)
@@ -31,12 +6,12 @@ def REQUEST_TO_CREATE_TRADES_TABLE(table_name: str):
 (
     CHANGE_ID       UUID DEFAULT generateUUIDv4() NOT NULL,
     TIMESTAMP_VALUE Int64 NOT NULL,
-    TRADE_ID Int32 NULL,
+    TRADE_ID Float32 NULL,
     PRICE Float32 NULL,
     INSTRUMENT_INDEX TinyInt NULL,
     INSTRUMENT_STRIKE Float32 NULL,
-    INSTRUMENT_MATURITY Int32 NULL,
-    INSTRUMENT_TYPE Int32 NULL,
+    INSTRUMENT_MATURITY Float32 NULL,
+    INSTRUMENT_TYPE Float32 NULL,
     DIRECTION TinyInt NULL,
     AMOUNT Float32 NULL
 ) ENGINE = MergeTree()
@@ -51,8 +26,8 @@ def REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name: str, depth_size: in
     CHANGE_ID UUID DEFAULT generateUUIDv4() NOT NULL,
     INSTRUMENT_INDEX TinyInt NULL,
     INSTRUMENT_STRIKE Float32 NULL,
-    INSTRUMENT_MATURITY Int32 NULL,
-    INSTRUMENT_TYPE Int32 NULL,
+    INSTRUMENT_MATURITY Float32 NULL,
+    INSTRUMENT_TYPE Float32 NULL,
     TIMESTAMP_VALUE Int64 NOT NULL,
     """
     ADDITIONAL_FIELDS_BIDS = """
@@ -83,26 +58,6 @@ COMMENT 'Test Table';
     return REQUEST
 
 
-def REQUEST_TO_CREATE_USER_PORTFOLIO_TABLE(table_name: str):
-    HEADER = "create table {}".format(table_name)
-    REQUEST = HEADER
-    REQUEST += """
-    (
-        CHANGE_ID       int not null auto_increment primary key,
-        CREATION_TIMESTAMP       bigint   null,
-        TOTAL_PL    float   null,
-        MARGIN_BALANCE float  null,
-        MAINTENANCE_MARGIN float null,
-        INITIAL_MARGIN float null,
-        ESTIMATED_LIQUIDATION_RATIO    float null,
-        EQUITY   float null,
-        DELTA_TOTAL  float null,
-        BALANCE float null,
-        AVAILABLE_WITHDRAWAL_FUNDS   float null,
-        AVAILABLE_FUNDS       float  null
-    );
-    """
-    return REQUEST
 
 if __name__ == '__main__':
     sql = REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT(table_name='sd', depth_size=10)
