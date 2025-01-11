@@ -1,4 +1,5 @@
 import logging
+import time
 
 from deribit_data_scrapper.Scrapper.TradingInterface import validate_configuration_file, DeribitClient
 from deribit_data_scrapper.Utils.AvailableCurrencies import Currency
@@ -105,6 +106,7 @@ async def start_scrapper(configuration_path=None):
 
         derLoop = asyncio.new_event_loop()
         instruments_list = await scrap_all_instruments_from_currency(currency=_currency, cfg=configuration['orderBookScrapper'])
+        # instruments_list = []
 
         deribitWorker = DeribitClient(cfg=configuration, cfg_path=configuration,
                                       instruments_listed=instruments_list, loopB=derLoop,

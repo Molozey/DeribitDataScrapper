@@ -129,8 +129,7 @@ def validate_configuration_file(configuration_path: str) -> dict:
     if type(cfg["orderBookScrapper"]["hearth_beat_time"]) != int:
         raise TypeError("Invalid type for scrapper configuration")
     if (
-        cfg["orderBookScrapper"]["database_daemon"] != "hdf5"
-        and cfg["orderBookScrapper"]["database_daemon"] != "mysql"
+        cfg["orderBookScrapper"]["database_daemon"] not in ["hdf5", "mysql", "clickhouse"]
     ):
         raise TypeError("Invalid type for scrapper configuration")
     if type(cfg["orderBookScrapper"]["add_extra_instruments"]) != list:
@@ -302,6 +301,58 @@ def net_databases_to_subscriptions(
                     )
                     result_netting[subscription_type] = database
                     subscription_type.plug_in_record_system(database=database)
+
+        case "clickhouse":
+            for action, subscription_type in scrapper.subscriptions_objects.items():
+                if action == "OrderBook":
+                    if (
+                            type(scrapper.configuration["orderBookScrapper"]["depth"])
+                            == int
+                    ):
+                        database = ClickHouseDaemon(
+                            configuration_path=scrapper.configuration_path,
+                            subscription_type=subscription_type,
+                            loop=scrapper.loop,
+                        )
+
+                    elif scrapper.configuration["orderBookScrapper"]["depth"] is False:
+                        database = ClickHouseDaemon(
+                            configuration_path=scrapper.configuration_path,
+                            subscription_type=subscription_type,
+                            loop=scrapper.loop,
+                        )
+                    else:
+                        raise ValueError("Unavailable value of depth order book mode")
+
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+                    time.sleep(1)
+                elif action == "Trades":
+                    database = ClickHouseDaemon(
+                        configuration_path=scrapper.configuration_path,
+                        subscription_type=subscription_type,
+                        loop=scrapper.loop,
+                    )
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+                elif action == "OwnOrderChange":
+                    database = ClickHouseDaemon(
+                        configuration_path=scrapper.configuration_path,
+                        subscription_type=subscription_type,
+                        loop=scrapper.loop,
+                    )
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+
+                elif action == "Portfolio":
+                    database = ClickHouseDaemon(
+                        configuration_path=scrapper.configuration_path,
+                        subscription_type=subscription_type,
+                        loop=scrapper.loop,
+                    )
+                    result_netting[subscription_type] = database
+                    subscription_type.plug_in_record_system(database=database)
+
         case _:
             logging.warning("Unknown database daemon selected")
             scrapper.database = None
@@ -321,7 +372,7 @@ class DeribitClient(Thread, WebSocketApp):
     """
 
     websocket: Optional[WebSocketApp]
-    database: Optional[Union[MySqlDaemon, HDF5Daemon]] = None
+    database: Optional[Union[MySqlDaemon, HDF5Daemon, ClickHouseDaemon]] = None
     loop: asyncio.unix_events.SelectorEventLoop
     instrument_name_instrument_id_map: AutoIncrementDict[
         str, AbstractInstrumentInfo
@@ -374,7 +425,7 @@ class DeribitClient(Thread, WebSocketApp):
         )
 
         # Initialize all loops and Threads
-        Thread.__init__(self)
+        Thread.__init__(self, daemon=True)
         self.loop = loopB
         asyncio.set_event_loop(self.loop)
 

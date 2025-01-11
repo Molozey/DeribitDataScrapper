@@ -55,3 +55,4 @@ urllib3==2.1.0
 websocket-client==1.7.0
 websockets==10.4
 Werkzeug==2.2.3
+clickhouse-connect==0.8.13

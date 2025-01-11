@@ -165,3 +165,4 @@ cython_debug/
 /*.log
 
 examples/BestAskAndBid/*.csv
+/compose_mount/*

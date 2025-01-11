@@ -1,6 +1,6 @@
 from typing import List
 from typing import TYPE_CHECKING
-
+import typing
 import numpy as np
 from numpy import ndarray
 from pandas import DataFrame
@@ -8,7 +8,9 @@ from pandas import DataFrame
 from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription
 from deribit_data_scrapper.Subsciption.AbstractSubscription import flatten
 from deribit_data_scrapper.Subsciption.AbstractSubscription import RequestTypo
-from deribit_data_scrapper.Utils import *
+from deribit_data_scrapper.Utils import MSG_LIST
+from deribit_data_scrapper.Utils import REQUEST_TO_CREATE_TRADES_TABLE as MYSQL_REQUEST_TO_CREATE_TRADES_TABLE
+from deribit_data_scrapper.Utils.clickHouseRecording.cleanUpRequestsLimited import REQUEST_TO_CREATE_TRADES_TABLE as CLICKHOUSE_REQUEST_TO_CREATE_TRADES_TABLE
 
 if TYPE_CHECKING:
     from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
@@ -25,10 +27,20 @@ class TradesSubscription(AbstractSubscription):
 
     tables_names = ["Trades_table_{}"]
 
+    @classmethod
+    def provide_creation_func(cls, config) -> typing.Callable:
+        match config["orderBookScrapper"]["database_daemon"]:
+            case "mysql":
+                return MYSQL_REQUEST_TO_CREATE_TRADES_TABLE
+            case "clickhouse":
+                return CLICKHOUSE_REQUEST_TO_CREATE_TRADES_TABLE
+            case _:
+                return MYSQL_REQUEST_TO_CREATE_TRADES_TABLE
+
     def __init__(self, scrapper: scrapper_typing):
         self.tables_names = [f"Trades_table_test"]
         self.tables_names_creation = list(
-            map(REQUEST_TO_CREATE_TRADES_TABLE, self.tables_names)
+            map(self.provide_creation_func(scrapper.configuration), self.tables_names)
         )
 
         super(TradesSubscription, self).__init__(
@@ -42,7 +54,7 @@ class TradesSubscription(AbstractSubscription):
     def _place_here_tables_names_and_creation_requests(self):
         self.tables_names = [f"Trades_table_test"]
         self.tables_names_creation = list(
-            map(REQUEST_TO_CREATE_TRADES_TABLE, self.tables_names)
+            map(self.provide_creation_func(self.scrapper.configuration), self.tables_names)
         )
 
     def create_columns_list(self) -> List[str]:

@@ -1,4 +1,5 @@
 import logging
+import typing
 from functools import partial
 from typing import List
 from typing import TYPE_CHECKING
@@ -10,9 +11,9 @@ from pandas import DataFrame
 from deribit_data_scrapper.Subsciption.AbstractSubscription import AbstractSubscription
 from deribit_data_scrapper.Subsciption.AbstractSubscription import flatten
 from deribit_data_scrapper.Subsciption.AbstractSubscription import RequestTypo
-from deribit_data_scrapper.Utils import *
-from deribit_data_scrapper.Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
-
+from deribit_data_scrapper.Utils import MSG_LIST
+from deribit_data_scrapper.Utils import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT as MYSQL_REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
+from deribit_data_scrapper.Utils.clickHouseRecording.cleanUpRequestsLimited import REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT as CLICK_REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
 if TYPE_CHECKING:
     from deribit_data_scrapper.Scrapper.TradingInterface import DeribitClient
 
@@ -28,13 +29,23 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
 
     tables_names = ["TABLE_DEPTH_{}"]
 
+    @classmethod
+    def provide_creation_func(cls, config) -> typing.Callable:
+        match config["orderBookScrapper"]["database_daemon"]:
+            case "mysql":
+                return MYSQL_REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
+            case "clickhouse":
+                return CLICK_REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
+            case _:
+                return MYSQL_REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT
+
     def __init__(self, scrapper: scrapper_typing, order_book_depth: int):
         self.depth: int = order_book_depth
         self.tables_names = [f"TABLE_DEPTH_{self.depth}"]
         self.tables_names_creation = list(
             map(
                 partial(
-                    REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT, depth_size=self.depth
+                    self.provide_creation_func(config=scrapper.configuration), depth_size=self.depth
                 ),
                 self.tables_names,
             )
@@ -54,12 +65,11 @@ class OrderBookSubscriptionCONSTANT(AbstractSubscription):
         self.tables_names_creation = list(
             map(
                 partial(
-                    REQUEST_TO_CREATE_LIMITED_ORDER_BOOK_CONTENT, depth_size=self.depth
+                    self.provide_creation_func(config=self.scrapper.configuration), depth_size=self.depth
                 ),
                 self.tables_names,
             )
         )
-
     def create_columns_list(self) -> List[str]:
         if self.depth == 0:
             raise NotImplementedError

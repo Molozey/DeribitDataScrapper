@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_container
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "24501:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  clickhouse:
+    image: yandex/clickhouse-server:latest
+    container_name: clickhouse_container
+    restart: always
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    ports:
+      - "24502:8123"
+      - "24503:9000"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+#      - clickhouse_config:/etc/clickhouse-server
+
+volumes:
+  mysql_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./compose_mount/mysql_volume
+  clickhouse_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./compose_mount/clickhouse_volume
+#  clickhouse_config:
+#    driver: local
+#    driver_opts:
+#      type: none
+#      o: bind
+#      device: ./database/volume
