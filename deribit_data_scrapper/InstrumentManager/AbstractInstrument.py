@@ -9,6 +9,7 @@ from typing import List
 from typing import Optional
 from typing import TYPE_CHECKING
 from typing import Union
+import pandas as pd
 
 from deribit_data_scrapper.Utils import CircularBuffer
 from deribit_data_scrapper.Utils import InstrumentType
@@ -19,6 +20,9 @@ if TYPE_CHECKING:
     interface_type = DeribitClient
 else:
     interface_type = object
+
+
+_TIMEDELTA_8_HOURS = pd.Timedelta("8 hours")
 
 
 class TradeInformation:
@@ -88,7 +92,7 @@ class AbstractInstrumentInfo(ABC):
     instrument_type: Optional[InstrumentType]
 
     _instrument_strike: Optional[float] = None  # Only for options | futures
-    _instrument_maturity: Optional[datetime] = None  # Only for options | futures
+    _instrument_maturity: Optional[pd.Timestamp] = None  # Only for options | futures
 
     def __init__(self, instrument_name: str):
         self._instrument_strike = None
@@ -106,9 +110,10 @@ class AbstractInstrumentInfo(ABC):
         elif "ETH" in self.instrument_name:
             return 1
 
-    def get_fields(self) -> [int, float, int, int]:
+    def get_fields(self) -> [int, float, float, int]:
         """
         Return fields of instrument. Used for saving to database. Order of fields is important.
+        Maturity is returned as Unix timestamp in seconds.
         :return: ins_index, strike, maturity, type
         """
         if self._instrument_strike is not None:
@@ -149,19 +154,12 @@ class AbstractInstrumentInfo(ABC):
             or (self.instrument_type == InstrumentType.PUT_OPTION)
             or (self.instrument_type == InstrumentType.FUTURE)
         ):
-            return (self._instrument_maturity - datetime.now()) / timedelta(days=365)
+            return (self._instrument_maturity - pd.Timestamp.now(tz="UTC")) / timedelta(days=365)
         else:
             logging.error(
                 "Called maturity attribute for instrument without maturity. Check your logic!"
             )
             raise ValueError(f"No maturity for instrument {self.instrument_name}")
-
-    def get_raw_instrument_maturity(self):
-        """
-        return raw datetime of instrument maturity
-        :return:
-        """
-        return self._instrument_maturity
 
     def __repr__(self):
         if (
@@ -207,18 +205,18 @@ class AbstractInstrumentInfo(ABC):
             split_instrument_name = self.instrument_name.split("-")
             if split_instrument_name[-1] == "C":
                 _kind = InstrumentType.CALL_OPTION
-                _maturity = datetime.strptime(split_instrument_name[1], "%d%b%y")
+                _maturity = pd.to_datetime(split_instrument_name[1], format="%d%b%y", utc=True) + _TIMEDELTA_8_HOURS
                 _strike = split_instrument_name[2]
 
             elif split_instrument_name[-1] == "P":
                 _kind = InstrumentType.PUT_OPTION
-                _maturity = datetime.strptime(split_instrument_name[1], "%d%b%y")
+                _maturity = pd.to_datetime(split_instrument_name[1], format="%d%b%y", utc=True) + _TIMEDELTA_8_HOURS
                 _strike = split_instrument_name[2]
             else:
                 if split_instrument_name[-1] == "PERPETUAL":
                     pass
                 else:
-                    _maturity = datetime.strptime(split_instrument_name[1], "%d%b%y")
+                    _maturity = pd.to_datetime(split_instrument_name[1], format="%d%b%y", utc=True) + _TIMEDELTA_8_HOURS
                     _kind = InstrumentType.FUTURE
 
             self._instrument_maturity = _maturity
@@ -245,7 +243,7 @@ class AbstractInstrument(ABC):
     user_last_trades: CircularBuffer[TradeInformation]
 
     _instrument_strike: Optional[float] = None  # Only for options | futures
-    _instrument_maturity: Optional[datetime] = None  # Only for options | futures
+    _instrument_maturity: Optional[pd.Timestamp] = None  # Only for options | futures
 
     def __init__(
         self,
@@ -320,7 +318,7 @@ class AbstractInstrument(ABC):
             or (self.instrument_type == InstrumentType.PUT_OPTION)
             or (self.instrument_type == InstrumentType.FUTURE)
         ):
-            return (self._instrument_maturity - datetime.now()) / timedelta(days=365)
+            return (self._instrument_maturity - pd.Timestamp.now(tz="UTC")) / timedelta(days=365)
         else:
             logging.error(
                 "Called maturity attribute for instrument without maturity. Check your logic!"
@@ -332,7 +330,10 @@ class AbstractInstrument(ABC):
         return raw datetime of instrument maturity
         :return:
         """
-        return self._instrument_maturity
+        # Raise error because changed field type to pd.Timestamp from standard
+        # Python datetime, and did not fix it in other places (yet)
+        raise NotImplementedError
+        # return self._instrument_maturity
 
     def place_last_trade(
         self, trade_price: float, trade_amount: float, trade_time: float = None
@@ -434,18 +435,18 @@ class AbstractInstrument(ABC):
             split_instrument_name = self.instrument_name.split("-")
             if split_instrument_name[-1] == "C":
                 _kind = InstrumentType.CALL_OPTION
-                _maturity = datetime.strptime(split_instrument_name[1], "%d%b%y")
+                _maturity = pd.to_datetime(split_instrument_name[1], format="%d%b%y", utc=True) + _TIMEDELTA_8_HOURS
                 _strike = split_instrument_name[2]
 
             elif split_instrument_name[-1] == "P":
                 _kind = InstrumentType.PUT_OPTION
-                _maturity = datetime.strptime(split_instrument_name[1], "%d%b%y")
+                _maturity = pd.to_datetime(split_instrument_name[1], format="%d%b%y", utc=True) + _TIMEDELTA_8_HOURS
                 _strike = split_instrument_name[2]
             else:
                 if split_instrument_name[-1] == "PERPETUAL":
                     pass
                 else:
-                    _maturity = datetime.strptime(split_instrument_name[1], "%d%b%y")
+                    _maturity = pd.to_datetime(split_instrument_name[1], format="%d%b%y", utc=True) + _TIMEDELTA_8_HOURS
                     _kind = InstrumentType.FUTURE
 
             self._instrument_maturity = _maturity

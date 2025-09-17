@@ -115,9 +115,6 @@ def validate_configuration_file(configuration_path: str) -> dict:
     """
     with open(configuration_path, "r") as ymlfile:
         cfg = yaml.load(ymlfile, Loader=yaml.FullLoader)
-    cfg["hdf5"][
-        "hdf5_database_directory"
-    ] = f'{os.getcwd()}/{cfg["hdf5"]["hdf5_database_directory"]}'
     if type(cfg["orderBookScrapper"]["depth"]) != int:
         raise TypeError("Invalid type for scrapper configuration")
     if type(cfg["orderBookScrapper"]["test_net"]) != bool:
@@ -499,6 +496,7 @@ class DeribitClient(Thread, WebSocketApp):
             # Answer to heartbeat request
             if response["method"] == "heartbeat":
                 # Send test message to approve that connection is still alive
+                logging.info("Heartbeat received, sending the heartbeat")
                 self.send_new_request(MSG_LIST.test_message())
                 return
             # TODO
@@ -544,7 +542,7 @@ class DeribitClient(Thread, WebSocketApp):
                 logging.error(f"Unknown error callback: | {response}")
 
     def _process_callback(self, response):
-        logging.info(response)
+        # logging.info(response)
         pass
 
     def _on_open(self, websocket):

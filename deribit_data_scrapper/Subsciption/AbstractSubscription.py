@@ -3,6 +3,7 @@ from abc import abstractmethod
 from enum import Enum
 from typing import List
 from typing import TYPE_CHECKING
+import logging
 
 from numpy import ndarray
 from pandas import DataFrame
@@ -93,9 +94,7 @@ class AbstractSubscription(ABC):
         pass
 
     def create_subscription_request(self) -> str:
-        if (not self.scrapper.auth_complete) and (
-            self.request_typo == RequestTypo.PRIVATE
-        ):
+        if (not self.scrapper.auth_complete):
             self.send_auth_message()
             self.scrapper.auth_complete = True
 
@@ -156,6 +155,7 @@ class AbstractSubscription(ABC):
         )
 
     def send_auth_message(self):
+        logging.warning("Sending auth message")
         self.scrapper.send_new_request(
             auth_message(client_id=self.client_id, client_secret=self.client_secret)
         )
